@@ -1,49 +1,3 @@
-# Parse json to python dataclass
-## Usage
-```sh
-./__main__.py <json file1> <json file2> ...
-```
-```sh
-python -m pyjson2dataclass <json file1> <json file2> ...
-```
-
-```python
-from pyjson2dataclass import parse
-import json
-
-
-filepath = 'json/example1.json'
-
-parse_text = parse('Example', json.load(open(filepath)))
-open('example.py', 'w').write(parse_text)
-```
-
-## Examples
-
-### [json/example1.json]
-```json
-{
-    "pascalName1": {
-        "pascalName2": [
-            1,
-            2
-        ]
-    },
-    "pascalName3": [
-        {
-            "pascalName4": [
-                {
-                    "pascalName5": {
-                        "data": 1
-                    }
-                }
-            ]
-        }
-    ]
-}
-```
-### [example.py]
-```python
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
@@ -109,5 +63,3 @@ class Example1:
                 self.pascal_name3.append(PascalName3Item(i))
 
 
-
-```
