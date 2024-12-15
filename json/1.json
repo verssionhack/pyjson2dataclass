@@ -1,0 +1,17 @@
+{
+    "pascalName1": {
+        "pascalName2": [
+            1,
+            2
+        ]
+    },
+    "pascalName3": [
+        {
+            "pascalName4": [
+                {
+                    "pascalName5": {}
+                }
+            ]
+        }
+    ]
+}
