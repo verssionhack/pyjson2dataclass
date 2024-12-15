@@ -6,8 +6,9 @@ import json as j
 import sys
 import os.path as op
 
-def main():
-    for i in sys.argv[1:]:
+
+def main(outdir='.', paths=sys.argv[1:]):
+    for i in paths:
 
         data = j.load(open(i))
 
@@ -33,7 +34,7 @@ def main():
         '''
         pascal_name = snake2pascal(file_name)
         pascal_name = pascal_name[0].upper() + pascal_name[1:]
-        open(f'./{pascal2snake(file_name)}.py', 'w').write(parse(pascal_name, data))
+        open(op.join(outdir, f'{pascal2snake(file_name)}.py'), 'w').write(parse(pascal_name, data))
 
 
 if __name__ == '__main__':
