@@ -7,7 +7,6 @@ RAW_TYPES = ['int', 'float', 'bool', 'str', 'list']
 def print_json(v):
     print(json.dumps(v, ensure_ascii=False, indent=4))
 
-
 def pascal2snake(value: str) -> str:
     if value.isupper():
         return value.lower()
@@ -103,18 +102,30 @@ def _parse_tree(value):
                 is_optional = False
                 base_struct = None
                 for sk, sv in parsed_dict['struct'].items():
+                    if sv.startswith('List') or sv.startswith('Dict'):
+                        all_eq = False
+                        break
                     if sv == 'Any':
                         is_optional = True
                         continue
-                    elif sv in RAW_TYPES or sv.startswith('List') or sv.startswith('Dict'):
-                        all_eq = False
-                        break
+                    elif sv in RAW_TYPES and base_struct: #or sv.startswith('List') or sv.startswith('Dict'):
+                        if base_struct != sv:
+                            all_eq = False
+                            break
+                        else:
+                            continue
                     elif not base_struct:
-                        base_struct = parsed_dict['children'][sv]
+                        if sv in RAW_TYPES:
+                            base_struct = sv
+                        else:
+                            base_struct = parsed_dict['children'][sv]
                     else:
                         more_keys_struct = base_struct
                         less_keys_struct = parsed_dict['children'][sv]
                         if _parsed_struct2str(base_struct) != _parsed_struct2str(parsed_dict['children'][sv]):
+                            if not (isinstance(more_keys_struct, dict) and isinstance(less_keys_struct, dict)):
+                                all_eq = False
+                                break
                             if len(more_keys_struct['struct']) < len(less_keys_struct['struct']):
                                 more_keys_struct, less_keys_struct = less_keys_struct, more_keys_struct
                             for lk in less_keys_struct['struct']:
@@ -127,11 +138,17 @@ def _parse_tree(value):
                             base_struct = more_keys_struct
 
                 if all_eq and base_struct:
-                    ret['children'][childrenk] = base_struct
-                    if is_optional:
-                        ret['struct'][pascal2snake(k)] = f'Dict[str, Optional[{childrenk}]]'
+                    if base_struct in RAW_TYPES:
+                        if is_optional:
+                            ret['struct'][pascal2snake(k)] = f'Dict[str, Optional[{base_struct}]]'
+                        else:
+                            ret['struct'][pascal2snake(k)] = f'Dict[str, {base_struct}]'
                     else:
-                        ret['struct'][pascal2snake(k)] = f'Dict[str, {childrenk}]'
+                        ret['children'][childrenk] = base_struct
+                        if is_optional:
+                            ret['struct'][pascal2snake(k)] = f'Dict[str, Optional[{childrenk}]]'
+                        else:
+                            ret['struct'][pascal2snake(k)] = f'Dict[str, {childrenk}]'
                 else:
                     ret['children'][childrenk] = parsed_dict
                     ret['struct'][pascal2snake(k)] = childrenk
