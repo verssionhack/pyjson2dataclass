@@ -4,11 +4,11 @@
 ./__main__.py <json file1> <json file2> ...
 ```
 ```sh
-python -m json2dataclass <json file1> <json file2> ...
+python -m pyjson2dataclass <json file1> <json file2> ...
 ```
 
 ```python
-from json2dataclass import parse
+from pyjson2dataclass import parse
 import json
 
 
