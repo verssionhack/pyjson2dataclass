@@ -1,7 +1,7 @@
 #!/bin/python3
 
 
-from utils import key2pascal, key2snake, parse, pascal2snake, snake2pascal, struct_tree, _parse_tree, print_json
+from .utils import key2pascal, key2snake, parse, pascal2snake, snake2pascal, struct_tree, _parse_tree, print_json
 import json as j
 import sys
 import os.path as op
@@ -10,6 +10,11 @@ def main():
     for i in sys.argv[1:]:
 
         data = j.load(open(i))
+
+        if not isinstance(data, dict):
+            continue
+
+
         file_name = op.basename(i)
 
         if '.' in file_name:

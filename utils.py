@@ -4,7 +4,7 @@ import json
 RAW_TYPES = ['int', 'float', 'bool', 'str', 'list']
 
 
-def print_json(v): 
+def print_json(v):
     print(json.dumps(v, ensure_ascii=False, indent=4))
 
 
@@ -104,7 +104,6 @@ def _parse_tree(value):
                 base_struct = None
                 for sk, sv in parsed_dict['struct'].items():
                     if sv == 'Any':
-                        parsed_dict['is_optional'] = True
                         is_optional = True
                         continue
                     elif sv in RAW_TYPES or sv.startswith('List') or sv.startswith('Dict'):
@@ -140,13 +139,60 @@ def _parse_tree(value):
 
             elif isinstance(value[k], list):
                 parsed_list = _parse_tree(value[k])
+                all_eq = True
+                is_optional = False
                 parsed_str_list = [_parsed_struct2str(i) for i in parsed_list]
+                i = 0
                 if len(parsed_list) == 0:
                     ret['struct'][pascal2snake(k)] = 'list'
                 else:
+                    base_struct = None
+                    for sv in parsed_list:
+                        if sv == 'Any':
+                            is_optional = True
+                            i += 1
+                            continue
+                        elif sv in RAW_TYPES and base_struct and base_struct != sv:
+                            all_eq = False
+                            break
+                        elif not base_struct:
+                            base_struct = sv
+                        else:
+                            more_keys_struct = base_struct
+                            less_keys_struct = sv
+                            if _parsed_struct2str(base_struct) != _parsed_struct2str(sv):
+                                if len(more_keys_struct['struct']) < len(less_keys_struct['struct']):
+                                    more_keys_struct, less_keys_struct = less_keys_struct, more_keys_struct
+                                for lk in less_keys_struct['struct']:
+                                    if lk not in more_keys_struct['struct']:
+                                        all_eq = False
+                                        break
+                                for mk in more_keys_struct['struct']:
+                                    if mk not in less_keys_struct['struct']:
+                                        more_keys_struct['struct'][mk] = f'Optional[{more_keys_struct["struct"][mk]}]'
+                                base_struct = more_keys_struct
+                        i += 1
+
+                    if all_eq and base_struct:
+                        if base_struct in RAW_TYPES:
+                            if is_optional:
+                                ret['struct'][pascal2snake(k)] = f'List[Optional[{base_struct}]]'
+                            else:
+                                ret['struct'][pascal2snake(k)] = f'List[{base_struct}]'
+                        else:
+                            ret['children'][childrenk] = base_struct
+                            if is_optional:
+                                ret['struct'][pascal2snake(k)] = f'List[Optional[{childrenk}]]'
+                            else:
+                                ret['struct'][pascal2snake(k)] = f'List[{childrenk}]'
+                            if 'is_list' in ret['children'][childrenk]:
+                                ret['children'][childrenk]['is_list'] = True
+                    else:
+                        raise Exception(f'parse list item[0] != item[{i}]\nitem[0]={parsed_str_list[0]}\nitem[{i}]={parsed_str_list[i]}')
+                    '''
                     for i in range(1, len(parsed_str_list)):
                         if parsed_str_list[0] != parsed_str_list[i]:
-                            raise Exception(f'parse list item[0]={parsed_str_list[0]} != item[{i}]={parsed_str_list[i]}')
+                            raise Exception(f'parse list item[0] != item[{i}]\nitem[0]={parsed_str_list[0]}\nitem[{i}]={parsed_str_list[i]}')
                     if parsed_list[0] in RAW_TYPES:
                         ret['struct'][pascal2snake(k)] = f'List[{parsed_list[0]}]'
                     else:
@@ -154,12 +200,14 @@ def _parse_tree(value):
                         ret['struct'][pascal2snake(k)] = f'List[{childrenk}]'
                         if 'is_list' in ret['children'][childrenk]:
                             ret['children'][childrenk]['is_list'] = True
+                    '''
             else:
                 ret['struct'][pascal2snake(k)] = _parse_tree(value[k])
 
         return ret
     else:
         return value.__class__.__name__ if value.__class__.__name__ != 'NoneType' else 'Any'
+
 
 def parse(name: str, data: dict):
     data = json.loads(json.dumps(data))
