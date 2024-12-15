@@ -9,7 +9,9 @@
         {
             "pascalName4": [
                 {
-                    "pascalName5": {}
+                    "pascalName5": {
+                        "data": 1
+                    }
                 }
             ]
         }
