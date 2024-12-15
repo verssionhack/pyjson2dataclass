@@ -1,5 +1,4 @@
 import json
-from typing import Required
 
 
 RAW_TYPES = ['int', 'float', 'bool', 'str', 'list']
