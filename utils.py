@@ -108,24 +108,24 @@ def _parse_tree(value):
                     if sv == 'Any':
                         is_optional = True
                         continue
-                    elif sv in RAW_TYPES and base_struct: #or sv.startswith('List') or sv.startswith('Dict'):
-                        if base_struct != sv:
-                            all_eq = False
-                            break
-                        else:
-                            continue
                     elif not base_struct:
                         if sv in RAW_TYPES:
                             base_struct = sv
                         else:
                             base_struct = parsed_dict['children'][sv]
+                    elif sv in RAW_TYPES or base_struct in RAW_TYPES: #or sv.startswith('List') or sv.startswith('Dict'):
+                        if base_struct != sv:
+                            all_eq = False
+                            break
                     else:
                         more_keys_struct = base_struct
                         less_keys_struct = parsed_dict['children'][sv]
                         if _parsed_struct2str(base_struct) != _parsed_struct2str(parsed_dict['children'][sv]):
+                            '''
                             if not (isinstance(more_keys_struct, dict) and isinstance(less_keys_struct, dict)):
                                 all_eq = False
                                 break
+                            '''
                             if len(more_keys_struct['struct']) < len(less_keys_struct['struct']):
                                 more_keys_struct, less_keys_struct = less_keys_struct, more_keys_struct
                             for lk in less_keys_struct['struct']:
@@ -153,12 +153,12 @@ def _parse_tree(value):
                     ret['children'][childrenk] = parsed_dict
                     ret['struct'][pascal2snake(k)] = childrenk
 
-
             elif isinstance(value[k], list):
                 parsed_list = _parse_tree(value[k])
                 all_eq = True
                 is_optional = False
                 parsed_str_list = [_parsed_struct2str(i) for i in parsed_list]
+                checkd_name = []
                 i = 0
                 if len(parsed_list) == 0:
                     ret['struct'][pascal2snake(k)] = 'list'
@@ -167,26 +167,27 @@ def _parse_tree(value):
                     for sv in parsed_list:
                         if sv == 'Any':
                             is_optional = True
-                            i += 1
-                            continue
-                        elif sv in RAW_TYPES and base_struct and base_struct != sv:
-                            all_eq = False
-                            break
                         elif not base_struct:
                             base_struct = sv
+                        elif sv in RAW_TYPES:
+                            if base_struct != sv:
+                                all_eq = False
+                                break
                         else:
                             more_keys_struct = base_struct
                             less_keys_struct = sv
                             if _parsed_struct2str(base_struct) != _parsed_struct2str(sv):
-                                if len(more_keys_struct['struct']) < len(less_keys_struct['struct']):
-                                    more_keys_struct, less_keys_struct = less_keys_struct, more_keys_struct
                                 for lk in less_keys_struct['struct']:
-                                    if lk not in more_keys_struct['struct']:
-                                        all_eq = False
-                                        break
+                                    if lk not in more_keys_struct['struct'] and lk not in checkd_name:
+                                        more_keys_struct['struct'][lk] = f'Optional[{less_keys_struct["struct"][lk]}]'
+                                        more_keys_struct['raw_name'][lk] = less_keys_struct['raw_name'][lk]
+                                        checkd_name.append(lk)
+                                        #all_eq = False
+                                        #break
                                 for mk in more_keys_struct['struct']:
-                                    if mk not in less_keys_struct['struct']:
+                                    if mk not in less_keys_struct['struct'] and mk not in checkd_name:
                                         more_keys_struct['struct'][mk] = f'Optional[{more_keys_struct["struct"][mk]}]'
+                                        checkd_name.append(mk)
                                 base_struct = more_keys_struct
                         i += 1
 

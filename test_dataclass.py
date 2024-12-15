@@ -11,7 +11,7 @@ from importlib import import_module
 
 dataclass_dir = './dataclass'
 json_dir = './json'
-main(dataclass_dir, [op.join(json_dir, i) for i in os.listdir(json_dir)])
+main(dataclass_dir, [op.join(json_dir, i) for i in os.listdir(json_dir) if not op.exists(op.join(json_dir, i))])
 
 for dataclass in [op.join(dataclass_dir, i) for i in os.listdir(dataclass_dir)]:
     test_dataclass_name = op.basename(dataclass)
