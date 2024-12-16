@@ -94,20 +94,7 @@ class PascalName4Item:
     def __init__(self, data: dict | None):
         if not data:
             return None
-        self.pascal_name5 = data["pascalName5"]
-
-
-@dataclass
-class PascalName1:
-    pascal_name2: List[int]
-
-    def __init__(self, data: dict | None):
-        if not data:
-            return None
-        self.pascal_name2 = []
-        if data.get("pascalName2"):
-            for i in data["pascalName2"]:
-                self.pascal_name2.append(i)
+        self.pascal_name5 = dict(data["pascalName5"])
 
 
 @dataclass
@@ -117,26 +104,19 @@ class PascalName3Item:
     def __init__(self, data: dict | None):
         if not data:
             return None
-        self.pascal_name4 = []
-        if data.get("pascalName4"):
-            for i in data["pascalName4"]:
-                self.pascal_name4.append(PascalName4Item(i))
+        self.pascal_name4 = [PascalName4Item(i0) for i0 in data["pascalName4"]]
 
 
 @dataclass
 class Example1:
-    pascal_name1: PascalName1
+    pascal_name1: Dict[str, List[int]]
     pascal_name3: List[PascalName3Item]
 
     def __init__(self, data: dict | None):
         if not data:
             return None
-        self.pascal_name1 = PascalName1(data["pascalName1"])
-        self.pascal_name3 = []
-        if data.get("pascalName3"):
-            for i in data["pascalName3"]:
-                self.pascal_name3.append(PascalName3Item(i))
-
+        self.pascal_name1 = dict([(k0, [intItem(i1) for i1 in v0]) for k0, v0 in data["pascalName1"].items()])
+        self.pascal_name3 = [PascalName3Item(i0) for i0 in data["pascalName3"]]
 
 
 ```

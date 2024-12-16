@@ -329,7 +329,7 @@ def unpack_field_parse(field: str, raw_name: str):
             case 'Dict':
                 return f'dict([(k{D}, {V(v, "v" + str(D), D + 1)}) for k{D}, v{D} in {N}.items()])'
             case 'List':
-                return f'[{V(v, "i" + str(D), D + 1, "Item")} for i{D} in {N}]'
+                return f'[{V(v, "i" + str(D), D + 1, "Item" if v in RAW_TYPES else '')} for i{D} in {N}]'
 
     return V(field, raw_name)
 
