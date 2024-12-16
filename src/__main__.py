@@ -30,11 +30,18 @@ parser.add_argument('-p', '--pascal',
                     help='use pascalName for parsed dataclass filename'
                     )
 
+parser.add_argument('-f', '--force',
+                    default=False,
+                    dest='overwrite',
+                    action='store_true',
+                    help='enable overwrite exists dataclass'
+                    )
+
 
 def main():
     args = parser.parse_args()
 
-    do_parse(args.save_dir, args.input, args.pascal)
+    do_parse(args.save_dir, args.input, args.pascal, args.overwrite)
 
 
 if __name__ == '__main__':

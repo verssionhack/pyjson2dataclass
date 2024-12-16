@@ -5,7 +5,7 @@ import os
 from importlib import import_module
 
 
-def do_parse(save_dir: str, inputs: list[str], pascal: bool = False):
+def do_parse(save_dir: str, inputs: list[str], pascal: bool = False, overwrite: bool = False):
     for i in inputs:
 
         data = json.load(open(i))
@@ -22,7 +22,8 @@ def do_parse(save_dir: str, inputs: list[str], pascal: bool = False):
         file_name = snake2pascal(file_name) if pascal else pascal2snake(file_name)
         if not op.exists(save_dir):
             os.makedirs(save_dir)
-        open(op.join(save_dir, f'{file_name}.py'), 'w').write(parse(pascal_name[0].upper() + pascal_name[1:], data))
+        if not op.exists(op.join(save_dir, f'{file_name}.py')) or overwrite:
+            open(op.join(save_dir, f'{file_name}.py'), 'w').write(parse(pascal_name[0].upper() + pascal_name[1:], data))
 
 
 def do_test(dataclass_dir: str, json_dir: str):
@@ -38,8 +39,6 @@ def do_test(dataclass_dir: str, json_dir: str):
             (path, r) = op.split(path)
         mpath.insert(0, r)
         return '.'.join(mpath)
-
-    #do_parse(dataclass_dir, [op.join(json_dir, i) for i in os.listdir(json_dir) if not op.exists(op.join(json_dir, i))])
 
     for jsonfile in [op.join(json_dir, i) for i in os.listdir(json_dir)]:
         test_dataclass_name = op.basename(jsonfile)
