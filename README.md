@@ -1,11 +1,54 @@
 # Parse json to python dataclass
+
+## Installion
+
+```sh
+pip3 install pyjson2dataclass
+```
+
 ## Usage
-```sh
-./__main__.py <json file1> <json file2> ...
+
+### json2dataclass
+
+```txt
+usage: json2dataclass [-h] [-d SAVE_DIR] [-i [INPUT ...]] [-p]
+
+options:
+  -h, --help            show this help message and exit
+  -d SAVE_DIR, --save-dir SAVE_DIR
+                        specify the directory parsed dataclass file save to
+  -i [INPUT ...], --input [INPUT ...]
+                        specify the input json file path
+  -p, --pascal          use pascalName for parsed dataclass filename
 ```
+
 ```sh
-python -m pyjson2dataclass <json file1> <json file2> ...
+json2dataclass -i <json file1> <json file2> ... -d dataclass
 ```
+What above did is parse json file passed by `-i` to dataclass python file and save them to directory 'dataclass'
+
+### json2dataclass_test
+
+```txt
+usage: json2dataclass_test [-h] [-d DATACLASS_DIR] [-j JSON_DIR]
+
+options:
+  -h, --help            show this help message and exit
+  -d DATACLASS_DIR, --dataclass-dir DATACLASS_DIR
+                        specify parsed dataclass directory to be test
+  -j JSON_DIR, --json-dir JSON_DIR
+                        specify json directory to be test
+```
+
+```sh
+json2dataclass_test -j json -d dataclass
+```
+
+We can use 'json2dataclass_test' to check dataclass python quickly
+
+
+
+## Examples
 
 ```python
 from pyjson2dataclass import parse
@@ -17,8 +60,6 @@ filepath = 'json/example1.json'
 parse_text = parse('Example', json.load(open(filepath)))
 open('example.py', 'w').write(parse_text)
 ```
-
-## Examples
 
 ### [json/example1.json]
 ```json
@@ -33,39 +74,27 @@ open('example.py', 'w').write(parse_text)
         {
             "pascalName4": [
                 {
-                    "pascalName5": {
-                        "data": 1
-                    }
+                    "pascalName5": {}
                 }
             ]
         }
     ]
 }
 ```
-### [example.py]
+### [example1.py]
 ```python
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
 
 @dataclass
-class PascalName5:
-    data: int
-
-    def __init__(self, data: dict | None):
-        if not data:
-            return None
-        self.data = data["data"]
-
-
-@dataclass
 class PascalName4Item:
-    pascal_name5: PascalName5
+    pascal_name5: dict
 
     def __init__(self, data: dict | None):
         if not data:
             return None
-        self.pascal_name5 = PascalName5(data["pascalName5"])
+        self.pascal_name5 = data["pascalName5"]
 
 
 @dataclass
@@ -95,7 +124,7 @@ class PascalName3Item:
 
 
 @dataclass
-class Example:
+class Example1:
     pascal_name1: PascalName1
     pascal_name3: List[PascalName3Item]
 
@@ -115,21 +144,24 @@ class Example:
 ## Use example.py
 ### Run
 ```python
-from example import Example
+import sys
+sys.path.append('./dataclass')
+
+from example1 import Example1
 import json
 
 filepath = 'json/example1.json'
 
-example = Example(json.load(open(filepath)))
+example = Example1(json.load(open(filepath)))
 print(example)
 print(example.pascal_name1)
 print(example.pascal_name3)
 ```
 ### Output
 ```txt
-Example(pascal_name1=PascalName1(pascal_name2=[1, 2]), pascal_name3=[PascalName3Item(pascal_name4=[PascalName4Item(pascal_name5=PascalName5(data=1))])])
+Example1(pascal_name1=PascalName1(pascal_name2=[1, 2]), pascal_name3=[PascalName3Item(pascal_name4=[PascalName4Item(pascal_name5={})])])
 PascalName1(pascal_name2=[1, 2])
-[PascalName3Item(pascal_name4=[PascalName4Item(pascal_name5=PascalName5(data=1))])]
+[PascalName3Item(pascal_name4=[PascalName4Item(pascal_name5={})])]
 ```
 
 ## Back to HomePage [https://github.com/verssionhack/pyjson2dataclass]

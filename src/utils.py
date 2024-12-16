@@ -8,6 +8,7 @@ RESERVED_NAMES = ['async', 'def', 'if', 'raise', 'del', 'import', 'return', 'eli
 def print_json(v):
     print(json.dumps(v, ensure_ascii=False, indent=4))
 
+
 def pascal2snake(value: str) -> str:
     if value.isupper():
         return value.lower()

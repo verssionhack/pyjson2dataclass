@@ -15,7 +15,7 @@ def do_parse(save_dir: str, inputs: list[str], pascal: bool = False):
         file_name = op.basename(i)
 
         if '.' in file_name:
-            file_name = file_name[:file_name.find('.')]
+            file_name = file_name[:file_name.rfind('.')]
 
         pascal_name = snake2pascal(file_name)
         file_name = snake2pascal(file_name) if pascal else pascal2snake(file_name)
@@ -25,12 +25,27 @@ def do_parse(save_dir: str, inputs: list[str], pascal: bool = False):
 
 
 def do_test(dataclass_dir: str, json_dir: str):
+
+    def path2modulepath(path: str):
+        if path.startswith('/'):
+            raise Exception('do not start with /')
+        mpath = []
+        r = ''
+        path, r = op.split(path)
+        while path:
+            mpath.insert(0, r)
+            (path, r) = op.split(path)
+        mpath.insert(0, r)
+        return '.'.join(mpath)
+
     #do_parse(dataclass_dir, [op.join(json_dir, i) for i in os.listdir(json_dir) if not op.exists(op.join(json_dir, i))])
 
     for jsonfile in [op.join(json_dir, i) for i in os.listdir(json_dir)]:
         test_dataclass_name = op.basename(jsonfile)
-        test_dataclass_name_s = pascal2snake(test_dataclass_name[:test_dataclass_name.find('.')])
-        test_dataclass_name_p = snake2pascal(test_dataclass_name[:test_dataclass_name.find('.')])
+        if '.' in test_dataclass_name:
+            test_dataclass_name = test_dataclass_name[:test_dataclass_name.rfind('.')]
+        test_dataclass_name_s = pascal2snake(test_dataclass_name)
+        test_dataclass_name_p = snake2pascal(test_dataclass_name)
         test_dataclass_name_p = test_dataclass_name_p[0].upper() + test_dataclass_name_p[1:]
 
         test_dataclass_filepath_s = op.join(dataclass_dir, test_dataclass_name_s) + '.py'
@@ -47,8 +62,8 @@ def do_test(dataclass_dir: str, json_dir: str):
 
         test_json = json.load(open(jsonfile))
 
-        print(f'import {op.basename(dataclass_dir)}.{test_dataclass_name}')
-        test_dataclass_module = import_module(f'{op.basename(dataclass_dir)}.{test_dataclass_name}')
+        print(f'import {path2modulepath(dataclass_dir)}.{test_dataclass_name}')
+        test_dataclass_module = import_module(f'{path2modulepath(dataclass_dir)}.{test_dataclass_name}')
 
         test_json_dataclass = eval(f'test_dataclass_module.{test_dataclass_name_p}({test_json})')
         print(test_json_dataclass)
