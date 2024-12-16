@@ -52,8 +52,6 @@ def do_test(dataclass_dir: str, json_dir: str):
         test_dataclass_filepath_s = op.join(dataclass_dir, test_dataclass_name_s) + '.py'
         test_dataclass_filepath_p = op.join(dataclass_dir, test_dataclass_name_p) + '.py'
 
-        print(f'test {test_dataclass_filepath_s}')
-        print(f'test {test_dataclass_filepath_p}')
         if op.isfile(test_dataclass_filepath_s):
             test_dataclass_filepath = test_dataclass_filepath_s
             test_dataclass_name = test_dataclass_name_s
