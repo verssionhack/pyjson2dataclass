@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pyjson2dataclass
-Version: 1.3.4
+Version: 1.3.5
 Summary: Parse json to dataclass
 Author: yinpeach
 Project-URL: Homepage, https://github.com/verssionhack

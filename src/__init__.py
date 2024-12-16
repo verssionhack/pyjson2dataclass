@@ -1,5 +1,5 @@
 from typing import dataclass_transform
-from .utils import pascal2snake, snake2pascal, key2snake, key2pascal, parse, json, print_json
+from .utils import pascal2snake, snake2pascal, key2snake, key2pascal, parse, json, print_json, repair_name
 import os.path as op
 import os
 from importlib import import_module
@@ -20,6 +20,7 @@ def do_parse(save_dir: str, inputs: list[str], pascal: bool = False, overwrite: 
 
         pascal_name = snake2pascal(file_name)
         file_name = snake2pascal(file_name) if pascal else pascal2snake(file_name)
+        file_name = repair_name(file_name)
         if not op.exists(save_dir):
             os.makedirs(save_dir)
         if not op.exists(op.join(save_dir, f'{file_name}.py')) or overwrite:
@@ -43,7 +44,7 @@ def do_test(dataclass_dir: str, json_dir: str):
     for jsonfile in [op.join(json_dir, i) for i in os.listdir(json_dir)]:
         test_dataclass_name = op.basename(jsonfile)
         if '.' in test_dataclass_name:
-            test_dataclass_name = test_dataclass_name[:test_dataclass_name.rfind('.')]
+            test_dataclass_name = repair_name(test_dataclass_name[:test_dataclass_name.rfind('.')])
         test_dataclass_name_s = pascal2snake(test_dataclass_name)
         test_dataclass_name_p = snake2pascal(test_dataclass_name)
         test_dataclass_name_p = test_dataclass_name_p[0].upper() + test_dataclass_name_p[1:]
@@ -51,6 +52,8 @@ def do_test(dataclass_dir: str, json_dir: str):
         test_dataclass_filepath_s = op.join(dataclass_dir, test_dataclass_name_s) + '.py'
         test_dataclass_filepath_p = op.join(dataclass_dir, test_dataclass_name_p) + '.py'
 
+        print(f'test {test_dataclass_filepath_s}')
+        print(f'test {test_dataclass_filepath_p}')
         if op.isfile(test_dataclass_filepath_s):
             test_dataclass_filepath = test_dataclass_filepath_s
             test_dataclass_name = test_dataclass_name_s
@@ -58,6 +61,7 @@ def do_test(dataclass_dir: str, json_dir: str):
             test_dataclass_filepath = test_dataclass_filepath_p
             test_dataclass_name = test_dataclass_name_p
         else:
+            print(f'dataclass file for "{jsonfile}" not found')
             continue
 
         test_json = json.load(open(jsonfile))

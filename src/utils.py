@@ -1,4 +1,5 @@
 import json
+from typing import DefaultDict
 
 
 RAW_TYPES = ['int', 'float', 'bool', 'str', 'list', 'dict']
@@ -126,8 +127,10 @@ def _parse_tree(value):
                     checkd_name = []
                     for sk, sv in parsed_dict['struct'].items():
                         if sv.startswith('List') or sv.startswith('Dict'):
-                            all_eq = False
-                            break
+                            if sv.startswith('List'):
+                                all_eq = False
+                                break
+                            continue
                         if sv == 'Any':
                             is_optional = True
                             continue
@@ -149,12 +152,16 @@ def _parse_tree(value):
                                     all_eq = False
                                     break
                                 '''
-                                if len(more_keys_struct['struct']) < len(less_keys_struct['struct']):
-                                    more_keys_struct, less_keys_struct = less_keys_struct, more_keys_struct
+                                #if len(more_keys_struct['struct']) < len(less_keys_struct['struct']):
+                                #    more_keys_struct, less_keys_struct = less_keys_struct, more_keys_struct
                                 for lk in less_keys_struct['struct']:
-                                    if lk not in more_keys_struct['struct']:
-                                        all_eq = False
-                                        break
+                                    if lk not in more_keys_struct['struct'] and lk not in checkd_name:
+                                        more_keys_struct['struct'][lk] = f'Optional[{less_keys_struct["struct"][lk]}]'
+                                        more_keys_struct['raw_name'][lk] = less_keys_struct['raw_name'][lk]
+                                        checkd_name.append(lk)
+                                    #if lk not in more_keys_struct['struct']:
+                                    #    all_eq = False
+                                    #    break
                                 for mk in more_keys_struct['struct']:
                                     if mk not in less_keys_struct['struct'] and mk not in checkd_name:
                                         more_keys_struct['struct'][mk] = f'Optional[{more_keys_struct["struct"][mk]}]'
@@ -281,6 +288,53 @@ def parse(name: str, data: dict):
     return header + body_text
 
 
+def unpack_raw_field(field: str, deep: int = -1):
+    prefixs = [
+            'Optional[',
+            'List[',
+            'Dict[str, ',
+            ]
+    unpack_layers = []
+    while deep == -1 or deep > 0:
+        hit = False
+        for prefix in prefixs:
+            if field.startswith(prefix):
+                unpack_layers.append(prefix[:prefix.find('[')])
+                field = field[len(prefix):-1]
+                hit = True
+                if deep > 0:
+                    deep -= 1
+                if deep == 0:
+                    break
+        if not hit:
+            break
+    return unpack_layers, field
+
+
+def unpack_field_parse(field: str, raw_name: str):
+    def V(v: str, N: str, D: int = 0, Vpad: str = ''):
+
+        def optional_name_trans(s: str):
+            if (i := s.find('.get(')) != -1:
+                j = s.rfind(')')
+                s = s[:i] + f'[{N[i + 5:j]}]' + s[j + 1:]
+            return s
+
+        layers, v = unpack_raw_field(v, 1)
+        if len(layers) == 0:
+            return f'{v}{Vpad}({N})'
+        match layers[-1]:
+            case 'Optional':
+                return f'{V(v, optional_name_trans(N), D + 1)} if {N} else None'
+            case 'Dict':
+                return f'dict([(k{D}, {V(v, "v" + str(D), D + 1)}) for k{D}, v{D} in {N}.items()])'
+            case 'List':
+                return f'[{V(v, "i" + str(D), D + 1, "Item")} for i{D} in {N}]'
+
+    return V(field, raw_name)
+
+
+
 def _parse(name: str, data: dict):
     predefs = []
     if data['is_list']:
@@ -316,6 +370,12 @@ f'''
     for k, v in data['struct'].items():
         raw_name = data['raw_name'][pascal2snake(k)]
         rk = repair_name(k)
+        _l, _v = unpack_raw_field(v, 1)
+        if len(_l) > 0 and _l[0] == 'Optional':
+            body_text += f'        self.{rk} = {unpack_field_parse(v, "data.get(\"" + raw_name + "\")")}\n'
+        else:
+            body_text += f'        self.{rk} = {unpack_field_parse(v, "data[\"" + raw_name + "\"]")}\n'
+        '''
         if v.startswith('List['):
             type_name = v[5:-1]
             body_text += f'        self.{rk} = []\n'
@@ -354,6 +414,7 @@ f'''
                     body_text += f'        self.{rk} = {type_name}(data.get("{raw_name}")) if data.get("{raw_name}") else None\n'
             else:
                 body_text += f'        self.{rk} = {v}(data["{raw_name}"])\n'
+        '''
 
     body_text += '\n\n'
 
