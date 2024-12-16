@@ -1,3 +1,4 @@
+from typing import dataclass_transform
 from .utils import pascal2snake, snake2pascal, key2snake, key2pascal, parse, json, print_json
 import os.path as op
 import os
@@ -62,8 +63,12 @@ def do_test(dataclass_dir: str, json_dir: str):
 
         test_json = json.load(open(jsonfile))
 
-        print(f'import {path2modulepath(dataclass_dir)}.{test_dataclass_name}')
-        test_dataclass_module = import_module(f'{path2modulepath(dataclass_dir)}.{test_dataclass_name}')
+        if dataclass_dir == '.':
+            print(f'import {test_dataclass_name}')
+            test_dataclass_module = import_module(f'{test_dataclass_name}')
+        else:
+            print(f'import {path2modulepath(dataclass_dir)}.{test_dataclass_name}')
+            test_dataclass_module = import_module(f'{path2modulepath(dataclass_dir)}.{test_dataclass_name}')
 
         test_json_dataclass = eval(f'test_dataclass_module.{test_dataclass_name_p}({test_json})')
         print(test_json_dataclass)
