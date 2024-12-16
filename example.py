@@ -49,7 +49,7 @@ class PascalName3Item:
 
 
 @dataclass
-class Example1:
+class Example:
     pascal_name1: PascalName1
     pascal_name3: List[PascalName3Item]
 

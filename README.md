@@ -111,3 +111,23 @@ class Example:
 
 
 ```
+
+## Use example.py
+### Run
+```python
+from example import Example
+import json
+
+filepath = 'json/example1.json'
+
+example = Example(json.load(open(filepath)))
+print(example)
+print(example.pascal_name1)
+print(example.pascal_name3)
+```
+### Output
+```txt
+Example(pascal_name1=PascalName1(pascal_name2=[1, 2]), pascal_name3=[PascalName3Item(pascal_name4=[PascalName4Item(pascal_name5=PascalName5(data=1))])])
+PascalName1(pascal_name2=[1, 2])
+[PascalName3Item(pascal_name4=[PascalName4Item(pascal_name5=PascalName5(data=1))])]
+```
