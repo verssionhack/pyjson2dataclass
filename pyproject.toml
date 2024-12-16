@@ -1,0 +1,19 @@
+[project]
+name = "pyjson2dataclass"
+readme = "README.md"
+keywords = ["dataclass", "json", "yinpeach"]
+description = "Parse json to dataclass"
+authors = [
+    {name = "yinpeach"}
+]
+version = "1.3"
+requires-python = ">=3.9"
+
+[project.scripts]
+json2dataclass = "pyjson2dataclass.__main__:main"
+json2dataclass_test = "pyjson2dataclass.json2dataclass_test:main"
+
+[project.urls]
+Homepage = "https://github.com/verssionhack"
+Documentation = "https://github.com/verssionhack/pyjson2dataclass/README.md"
+Repository = "https://github.com/verssionhack/pyjson2dataclass.git"

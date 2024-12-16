@@ -1,7 +1,8 @@
 import json
 
 
-RAW_TYPES = ['int', 'float', 'bool', 'str', 'list']
+RAW_TYPES = ['int', 'float', 'bool', 'str', 'list', 'dict']
+RESERVED_NAMES = ['async', 'def', 'if', 'raise', 'del', 'import', 'return', 'elif', 'in', 'try', 'and', 'else', 'is', 'while', 'as', 'except', 'lambda', 'with', 'assert', 'finally', 'nonlocal', 'yield', 'break', 'for', 'not', 'class', 'form', 'or', 'continue', 'global', 'pass']
 
 
 def print_json(v):
@@ -98,60 +99,63 @@ def _parse_tree(value):
             if isinstance(value[k], dict):
                 parsed_dict = _parse_tree(value[k])
 
-                all_eq = len(parsed_dict['struct']) > 1
-                is_optional = False
-                base_struct = None
-                for sk, sv in parsed_dict['struct'].items():
-                    if sv.startswith('List') or sv.startswith('Dict'):
-                        all_eq = False
-                        break
-                    if sv == 'Any':
-                        is_optional = True
-                        continue
-                    elif not base_struct:
-                        if sv in RAW_TYPES:
-                            base_struct = sv
-                        else:
-                            base_struct = parsed_dict['children'][sv]
-                    elif sv in RAW_TYPES or base_struct in RAW_TYPES: #or sv.startswith('List') or sv.startswith('Dict'):
-                        if base_struct != sv:
+                if len(parsed_dict['struct']) == 0:
+                    ret['struct'][pascal2snake(k)] = 'dict'
+                else:
+                    all_eq = len(parsed_dict['struct']) > 1
+                    is_optional = False
+                    base_struct = None
+                    for sk, sv in parsed_dict['struct'].items():
+                        if sv.startswith('List') or sv.startswith('Dict'):
                             all_eq = False
                             break
-                    else:
-                        more_keys_struct = base_struct
-                        less_keys_struct = parsed_dict['children'][sv]
-                        if _parsed_struct2str(base_struct) != _parsed_struct2str(parsed_dict['children'][sv]):
-                            '''
-                            if not (isinstance(more_keys_struct, dict) and isinstance(less_keys_struct, dict)):
+                        if sv == 'Any':
+                            is_optional = True
+                            continue
+                        elif not base_struct:
+                            if sv in RAW_TYPES:
+                                base_struct = sv
+                            else:
+                                base_struct = parsed_dict['children'][sv]
+                        elif sv in RAW_TYPES or base_struct in RAW_TYPES: #or sv.startswith('List') or sv.startswith('Dict'):
+                            if base_struct != sv:
                                 all_eq = False
                                 break
-                            '''
-                            if len(more_keys_struct['struct']) < len(less_keys_struct['struct']):
-                                more_keys_struct, less_keys_struct = less_keys_struct, more_keys_struct
-                            for lk in less_keys_struct['struct']:
-                                if lk not in more_keys_struct['struct']:
+                        else:
+                            more_keys_struct = base_struct
+                            less_keys_struct = parsed_dict['children'][sv]
+                            if _parsed_struct2str(base_struct) != _parsed_struct2str(parsed_dict['children'][sv]):
+                                '''
+                                if not (isinstance(more_keys_struct, dict) and isinstance(less_keys_struct, dict)):
                                     all_eq = False
                                     break
-                            for mk in more_keys_struct['struct']:
-                                if mk not in less_keys_struct['struct']:
-                                    more_keys_struct['struct'][mk] = f'Optional[{more_keys_struct["struct"][mk]}]'
-                            base_struct = more_keys_struct
+                                '''
+                                if len(more_keys_struct['struct']) < len(less_keys_struct['struct']):
+                                    more_keys_struct, less_keys_struct = less_keys_struct, more_keys_struct
+                                for lk in less_keys_struct['struct']:
+                                    if lk not in more_keys_struct['struct']:
+                                        all_eq = False
+                                        break
+                                for mk in more_keys_struct['struct']:
+                                    if mk not in less_keys_struct['struct']:
+                                        more_keys_struct['struct'][mk] = f'Optional[{more_keys_struct["struct"][mk]}]'
+                                base_struct = more_keys_struct
 
-                if all_eq and base_struct:
-                    if base_struct in RAW_TYPES:
-                        if is_optional:
-                            ret['struct'][pascal2snake(k)] = f'Dict[str, Optional[{base_struct}]]'
+                    if all_eq and base_struct:
+                        if base_struct in RAW_TYPES:
+                            if is_optional:
+                                ret['struct'][pascal2snake(k)] = f'Dict[str, Optional[{base_struct}]]'
+                            else:
+                                ret['struct'][pascal2snake(k)] = f'Dict[str, {base_struct}]'
                         else:
-                            ret['struct'][pascal2snake(k)] = f'Dict[str, {base_struct}]'
+                            ret['children'][childrenk] = base_struct
+                            if is_optional:
+                                ret['struct'][pascal2snake(k)] = f'Dict[str, Optional[{childrenk}]]'
+                            else:
+                                ret['struct'][pascal2snake(k)] = f'Dict[str, {childrenk}]'
                     else:
-                        ret['children'][childrenk] = base_struct
-                        if is_optional:
-                            ret['struct'][pascal2snake(k)] = f'Dict[str, Optional[{childrenk}]]'
-                        else:
-                            ret['struct'][pascal2snake(k)] = f'Dict[str, {childrenk}]'
-                else:
-                    ret['children'][childrenk] = parsed_dict
-                    ret['struct'][pascal2snake(k)] = childrenk
+                        ret['children'][childrenk] = parsed_dict
+                        ret['struct'][pascal2snake(k)] = childrenk
 
             elif isinstance(value[k], list):
                 parsed_list = _parse_tree(value[k])
@@ -258,6 +262,10 @@ def parse(name: str, data: dict):
 
 
 def _parse(name: str, data: dict):
+    def repair_reserved_name(name):
+        if name in RESERVED_NAMES:
+            name += '_'
+        return name
     predefs = []
     if data['is_list']:
         body_text = f'@dataclass\nclass {snake2pascal(name)}Item:\n'
@@ -270,16 +278,17 @@ def _parse(name: str, data: dict):
         predefs.insert(0, _body_text)
 
     for k, v in data['struct'].items():
+        rk = repair_reserved_name(k)
         if v.startswith('List[') or v == 'list':
             if v.startswith('List[') and v[5:-1] not in RAW_TYPES:
                 type_name = f'List[{v[5:-1]}Item]'
-                body_text += f'    {k}: {type_name}\n'
+                body_text += f'    {rk}: {type_name}\n'
             else:
-                body_text += f'    {k}: {v}\n'
+                body_text += f'    {rk}: {v}\n'
         elif v.startswith('Dict[') or v == 'dict':
-            body_text += f'    {k}: {v}\n'
+            body_text += f'    {rk}: {v}\n'
         else:
-            body_text += f'    {k}: {v}\n'
+            body_text += f'    {rk}: {v}\n'
 
     body_text += \
 f'''
@@ -290,44 +299,45 @@ f'''
 
     for k, v in data['struct'].items():
         raw_name = data['raw_name'][pascal2snake(k)]
+        rk = repair_reserved_name(k)
         if v.startswith('List['):
             type_name = v[5:-1]
-            body_text += f'        self.{k} = []\n'
+            body_text += f'        self.{rk} = []\n'
             if type_name in RAW_TYPES:
                 body_text += f'        if data.get("{raw_name}"):\n'
                 body_text += f'            for i in data["{raw_name}"]:\n'
-                body_text += f'                self.{k}.append(i)\n'
+                body_text += f'                self.{rk}.append(i)\n'
             else:
                 body_text += f'        if data.get("{raw_name}"):\n'
                 body_text += f'            for i in data["{raw_name}"]:\n'
                 type_name += 'Item'
-                body_text += f'                self.{k}.append({type_name}(i))\n'
+                body_text += f'                self.{rk}.append({type_name}(i))\n'
         elif v.startswith('Dict['):
             type_name = v[10:-1]
-            body_text += f'        self.{k} = {{}}\n'
+            body_text += f'        self.{rk} = {{}}\n'
             body_text += f'        if data.get("{raw_name}"):\n'
             body_text += f'            for k, v in data["{raw_name}"].items():\n'
             if type_name.startswith('Optional['):
                 type_name = type_name[9:-1]
                 if type_name in RAW_TYPES:
-                    body_text += f'                self.{k}[k] = v\n'
+                    body_text += f'                self.{rk}[k] = v\n'
                 else:
-                    body_text += f'                self.{k}[k] = {type_name}(v) if v else None\n'
+                    body_text += f'                self.{rk}[k] = {type_name}(v) if v else None\n'
             else:
-                body_text += f'                self.{k}[k] = {type_name}(v)\n'
+                body_text += f'                self.{rk}[k] = {type_name}(v)\n'
         else:
             if v == 'Any':
-                body_text += f'        self.{k} = data.get("{raw_name}")\n'
+                body_text += f'        self.{rk} = data.get("{raw_name}")\n'
             elif v in RAW_TYPES:
-                body_text += f'        self.{k} = data["{raw_name}"]\n'
+                body_text += f'        self.{rk} = data["{raw_name}"]\n'
             elif v.startswith('Optional['):
                 type_name = v[9:-1]
                 if type_name in RAW_TYPES:
-                    body_text += f'        self.{k} = data.get("{raw_name}")\n'
+                    body_text += f'        self.{rk} = data.get("{raw_name}")\n'
                 else:
-                    body_text += f'        self.{k} = {type_name}(data.get("{raw_name}")) if data.get("{raw_name}") else None\n'
+                    body_text += f'        self.{rk} = {type_name}(data.get("{raw_name}")) if data.get("{raw_name}") else None\n'
             else:
-                body_text += f'        self.{k} = {v}(data["{raw_name}"])\n'
+                body_text += f'        self.{rk} = {v}(data["{raw_name}"])\n'
 
     body_text += '\n\n'
 
