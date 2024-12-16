@@ -3,10 +3,24 @@ import json
 
 RAW_TYPES = ['int', 'float', 'bool', 'str', 'list', 'dict']
 RESERVED_NAMES = ['async', 'def', 'if', 'raise', 'del', 'import', 'return', 'elif', 'in', 'try', 'and', 'else', 'is', 'while', 'as', 'except', 'lambda', 'with', 'assert', 'finally', 'nonlocal', 'yield', 'break', 'for', 'not', 'class', 'form', 'or', 'continue', 'global', 'pass']
+ESCAPE_CHAR = {
+        '_': '-/|:;.\\',
+        '': '!@#$%^&*()[]\'"<>,~`{}?+=',
+        }
 
 
 def print_json(v):
     print(json.dumps(v, ensure_ascii=False, indent=4))
+
+
+def repair_name(name):
+    if name in RESERVED_NAMES:
+        name += '_'
+    for k, v in ESCAPE_CHAR.items():
+        for vv in v:
+            while vv in name:
+                name = name.replace(vv, k)
+    return name.replace('-', '_')
 
 
 def pascal2snake(value: str) -> str:
@@ -95,17 +109,21 @@ def _parse_tree(value):
 
         for k in value:
             ret['raw_name'][pascal2snake(k)] = k
-            childrenk = snake2pascal(k)
-            childrenk = childrenk[0].upper() + childrenk[1:]
+            childrenk = snake2pascal(repair_name(k))
+            if childrenk:
+                childrenk = childrenk[0].upper() + childrenk[1:]
             if isinstance(value[k], dict):
                 parsed_dict = _parse_tree(value[k])
 
                 if len(parsed_dict['struct']) == 0:
                     ret['struct'][pascal2snake(k)] = 'dict'
+                elif len(parsed_dict['struct']) == 1:
+                    ret['struct'][pascal2snake(k)] = f'Dict[str, {list(parsed_dict["struct"].values())[0]}]'
                 else:
                     all_eq = len(parsed_dict['struct']) > 1
                     is_optional = False
                     base_struct = None
+                    checkd_name = []
                     for sk, sv in parsed_dict['struct'].items():
                         if sv.startswith('List') or sv.startswith('Dict'):
                             all_eq = False
@@ -138,8 +156,9 @@ def _parse_tree(value):
                                         all_eq = False
                                         break
                                 for mk in more_keys_struct['struct']:
-                                    if mk not in less_keys_struct['struct']:
+                                    if mk not in less_keys_struct['struct'] and mk not in checkd_name:
                                         more_keys_struct['struct'][mk] = f'Optional[{more_keys_struct["struct"][mk]}]'
+                                        checkd_name.append(mk)
                                 base_struct = more_keys_struct
 
                     if all_eq and base_struct:
@@ -235,7 +254,7 @@ def _parse_tree(value):
 def parse(name: str, data: dict):
     data = json.loads(json.dumps(data))
     parsed_dict = _parse_tree(data)
-    predefs, body_text = _parse(name, parsed_dict)
+    predefs, body_text = _parse(repair_name(name), parsed_dict)
 
     predefs.reverse()
 
@@ -263,10 +282,6 @@ def parse(name: str, data: dict):
 
 
 def _parse(name: str, data: dict):
-    def repair_reserved_name(name):
-        if name in RESERVED_NAMES:
-            name += '_'
-        return name
     predefs = []
     if data['is_list']:
         body_text = f'@dataclass\nclass {snake2pascal(name)}Item:\n'
@@ -279,7 +294,7 @@ def _parse(name: str, data: dict):
         predefs.insert(0, _body_text)
 
     for k, v in data['struct'].items():
-        rk = repair_reserved_name(k)
+        rk = repair_name(k)
         if v.startswith('List[') or v == 'list':
             if v.startswith('List[') and v[5:-1] not in RAW_TYPES:
                 type_name = f'List[{v[5:-1]}Item]'
@@ -300,7 +315,7 @@ f'''
 
     for k, v in data['struct'].items():
         raw_name = data['raw_name'][pascal2snake(k)]
-        rk = repair_reserved_name(k)
+        rk = repair_name(k)
         if v.startswith('List['):
             type_name = v[5:-1]
             body_text += f'        self.{rk} = []\n'
