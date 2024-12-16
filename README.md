@@ -115,7 +115,7 @@ class Example1:
     def __init__(self, data: dict | None):
         if not data:
             return None
-        self.pascal_name1 = dict([(k0, [intItem(i1) for i1 in v0]) for k0, v0 in data["pascalName1"].items()])
+        self.pascal_name1 = dict([(k0, [int(i1) for i1 in v0]) for k0, v0 in data["pascalName1"].items()])
         self.pascal_name3 = [PascalName3Item(i0) for i0 in data["pascalName3"]]
 
 
