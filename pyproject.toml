@@ -6,7 +6,7 @@ description = "Parse json to dataclass"
 authors = [
     {name = "yinpeach"}
 ]
-version = "1.4.2"
+version = "1.4.3"
 requires-python = ">=3.9"
 
 [project.scripts]

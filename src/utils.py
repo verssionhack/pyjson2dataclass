@@ -1,7 +1,6 @@
 import json
 import re
-from typing import DefaultDict, List, Optional, Union
-from typing_extensions import Tuple
+from typing import List, Optional, Tuple
 
 
 RAW_TYPES = ['int', 'float', 'bool', 'str', 'list', 'dict']
@@ -298,7 +297,7 @@ def replace_raw_field(field: str, new_raw_field: str, deep: int = -1):
     return new_raw_field
 
 
-def unpack_raw_field(field: str, deep: int = -1) -> Tuple[List[str], str, Optional[str]]:
+def unpack_raw_field(field: str, deep: int = -1) -> (List[str], str, Optional[str]):
     prefixs = [
             'Optional[',
             'List[',
