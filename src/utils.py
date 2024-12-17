@@ -220,8 +220,8 @@ def _parse_tree(value):
 
                 if len(parsed_dict['struct']) == 0:
                     ret['struct'][pascal2snake(k)] = 'dict'
-                elif len(parsed_dict['struct']) == 1:
-                    ret['struct'][pascal2snake(k)] = f'Dict[str, {list(parsed_dict["struct"].values())[0]}]'
+                #elif len(parsed_dict['struct']) == 1:
+                #    ret['struct'][pascal2snake(k)] = f'Dict[str, {list(parsed_dict["struct"].values())[0]}]'
                 else:
                     for sk, sv in parsed_dict['struct'].items():
                         if not isinstance(sv, str):
@@ -232,7 +232,7 @@ def _parse_tree(value):
                         parsed_dict['children'][_r] = _do_concat_same_struct(parsed_dict['children'][_r])
                         if isinstance(parsed_dict['children'][_r], str):
                             parsed_dict['struct'][sk] = replace_raw_field(sv, parsed_dict['children'].pop(_r))
-                    ret['struct'][k] = childrenk
+                    ret['struct'][pascal2snake(k)] = childrenk
                     ret['children'][childrenk] = parsed_dict
 
             elif isinstance(value[k], list):
