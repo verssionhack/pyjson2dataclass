@@ -375,9 +375,9 @@ f'''
         rk = repair_name(k)
         _l, _v, _n = unpack_raw_field(v, 1)
         if len(_l) > 0 and _l[0] == 'Optional':
-            body_text += f'        self.{rk} = {unpack_field_parse(v, "data.get(\"" + raw_name + "\")")}\n'
+            body_text += '        self.{} = {}\n'.format(rk, unpack_field_parse(v, f'data.get("{raw_name}")'))
         else:
-            body_text += f'        self.{rk} = {unpack_field_parse(v, "data[\"" + raw_name + "\"]")}\n'
+            body_text += '        self.{} = {}\n'.format(rk, unpack_field_parse(v, f'data["{raw_name}"]'))
 
     body_text += '\n\n'
 
