@@ -10,9 +10,6 @@ def do_parse(save_dir: str, inputs: list[str], pascal: bool = False, overwrite: 
 
         data = json.load(open(i))
 
-        if not isinstance(data, dict):
-            continue
-
         file_name = op.basename(i)
 
         if '.' in file_name:
