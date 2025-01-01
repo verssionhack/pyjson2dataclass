@@ -338,7 +338,7 @@ def tree2dataclass(name: str, tree: Tree, no_data_field: bool = False) -> Tuple[
         k = Field(k)
         if not tree.is_field(k.field):
             v = v.replace_field(v.dataclass_name)
-        body += f'    {k.repair.snake.field}: {v.pack}\n'
+        body += f'    {k.snake.repair.field}: {v.pack}\n'
 
     body += '\n'
     body += '    def __init__(self, data):\n'
@@ -353,5 +353,5 @@ def tree2dataclass(name: str, tree: Tree, no_data_field: bool = False) -> Tuple[
         data_field = f'data.get("{k.field}")'
         if no_data_field:
             data_field = 'data'
-        body += f'        self.{k.repair.snake.field} = {v.parse}\n'.format(data=data_field)
+        body += f'        self.{k.snake.repair.field} = {v.parse}\n'.format(data=data_field)
     return (body[:-1], predef)
