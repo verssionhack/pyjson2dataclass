@@ -2,6 +2,7 @@
     "number_": 1,
     "string_": "string",
     "bool_": true,
+    "as": 1,
     "list_raw_": [
         1,
         2

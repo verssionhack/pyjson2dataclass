@@ -6,41 +6,100 @@ from .utils import RAW_TYPES, repair_name
 
 @dataclass
 class Layers:
-    inner: List[str]
+    _inner: List[str]
+
+    @property
+    def len(self):
+        return len(self._inner)
+
+    def __getitem__(self, i) -> str:
+        return self._inner[i]
+
+    def outer_is(self, layer: str) -> bool:
+        return not self.empty and self._inner[0] == layer
+
+    def inner_is(self, layer: str) -> bool:
+        return not self.empty and self._inner[-1] == layer
 
     def __add__(self, o: Self):
-        return Layers(self.inner + o.inner)
+        return Layers(self._inner + o._inner)
 
     @property
-    def inner_optional(self):
-        return self.inner and self.inner[-1] == 'Optional'
+    def _full_layers(self):
+        ret = []
+        i = 0
+        while i < self.len:
+            is_optional = False
+            if self._inner[i] == 'Optional':
+                is_optional = True
+                i += 1
+            if i == self.len:
+                break
+            ret.append((self._inner[i], is_optional))
+            i += 1
+        if not self.empty:
+            ret.append(self._inner[-1] == 'Optional')
+        else:
+            ret.append(False)
+        return ret
 
     @property
-    def outer_optional(self):
-        return self.inner and self.inner[0] == 'Optional'
-
-    def add(self, layer: str):
-        self.inner.insert(0, layer)
+    def inner_optional(self) -> bool:
+        return self.inner_is('Optional')
 
     @property
-    def empty(self):
-        return len(self.inner) == 0
+    def outer_optional(self) -> bool:
+        return self.outer_is('Optional')
+
+    def outer_add_layer(self, layer: str):
+        self._inner.insert(0, layer)
+
+    def inner_add_layer(self, layer: str):
+        self._inner.append(layer)
 
     @property
-    def parse(self):
+    def empty(self) -> bool:
+        return len(self._inner) == 0
+
+    @property
+    def parse(self) -> str:
         def V(v: str, N: str, D: int = 0):
-            if self.empty or D == len(self.inner):
+            if self.empty or D == len(self._inner):
                 return f'{v}({N})'
-            match self.inner[D]:
+            match self._inner[D]:
                 case 'Optional':
                     return f'({V(v, N, D + 1)}) if {N} is not None else None'
                 case 'List':
                     return f'[({V(v, "i" + str(D), D + 1)}) for i{D} in {N}]'
                 case 'Dict':
                     return f'dict([(k{D}, {V(v, "v" + str(D), D + 1)}) for k{D}, v{D} in {N}.items()])'
-            raise Exception(f'Unknown layer "{self.inner[D]}"')
+            raise Exception(f'Unknown layer "{self._inner[D]}"')
 
-        return V('{field}', '{{data}}.get("{{data_field}}")')
+        return V('{field}', '{{data}}')
+
+    def concat_with(self, other: Self):
+        new_layers = Layers([])
+        _non_opt_self_layers = Layers([layer for layer in self._inner if layer != 'Optional'])
+        _non_opt_other_layers = Layers([layer for layer in other._inner if layer != 'Optional'])
+        if _non_opt_self_layers.len != _non_opt_other_layers.len:
+            raise Exception(f'NonOptionalLayers self.len != other.len\nself={_non_opt_self_layers._inner}\nother={_non_opt_other_layers._inner}')
+
+        for i in range(_non_opt_self_layers.len):
+            if _non_opt_self_layers._inner[i] != _non_opt_other_layers._inner[i]:
+                raise Exception(f'NonOptionalLayers self[{i}] != other[{i}]\nself={_non_opt_self_layers._inner}\nother={_non_opt_other_layers._inner}')
+
+        _self_layers = self._full_layers
+        _other_layers = other._full_layers
+        for i in range(len(_self_layers) - 1):
+            layer, optional = _self_layers[i][0], _self_layers[i][1] | _other_layers[i][1]
+            # print(f'[{i}] {layer} {optional}')
+            if optional:
+                new_layers.inner_add_layer('Optional')
+            new_layers.inner_add_layer(layer)
+
+        if _self_layers[-1] | _other_layers[-1]:
+            new_layers.inner_add_layer('Optional')
+        self._inner = new_layers._inner
 
 
 @dataclass
@@ -48,9 +107,19 @@ class Field:
     field: str
     layers: Layers
 
-    def __init__(self, field: str, layers: List[str] = []):
+    def __init__(self, field: str, layers: List[str] | Layers = []):
         _layers, self.field, _ = _unpack_field(field=field)
-        self.layers = Layers(layers + _layers)
+        if isinstance(layers, list):
+            self.layers = Layers(layers + _layers)
+        else:
+            self.layers = Layers(layers._inner + _layers)
+
+    def replace_field(self, new_field: str):
+        return Field(new_field, self.layers)
+
+    @property
+    def copy(self):
+        return eval(str(self))
 
     @property
     def is_raw_type(self):
@@ -58,35 +127,44 @@ class Field:
 
     @property
     def is_list(self):
-        return self.field == 'list' or not self.layers.empty and self.layers[0] == 'List'
+        return self.field == 'list' or self.layers.outer_is('List')
 
     @property
     def is_dict(self):
-        return self.field == 'Dict' or not self.layers.empty and self.layers[0] == 'Dict'
+        return self.field == 'dict' or self.layers.outer_is('Dict')
 
     @property
     def pack(self):
-        return _pack_field(field=self.field, layers=self.layers.inner)
+        return _pack_field(field=self.field, layers=self.layers._inner)
 
     @property
     def camel(self):
-        return Field(field=camel_case(self.field), layers=self.layers.inner)
+        return Field(field=camel_case(self.field), layers=self.layers._inner)
 
     @property
     def pascal(self):
-        return Field(field=pascal_case(self.field), layers=self.layers.inner)
+        return Field(field=pascal_case(self.field), layers=self.layers._inner)
 
     @property
     def snake(self):
-        return Field(field=snake_case(self.field), layers=self.layers.inner)
+        return Field(field=snake_case(self.field), layers=self.layers._inner)
 
     @property
     def repair(self):
-        return Field(field=repair_name(self.field), layers=self.layers.inner)
+        return Field(field=repair_name(self.field), layers=self.layers._inner)
 
     @property
     def parse(self):
         return self.layers.parse.format(field=self.field)
+
+    @property
+    def dataclass_name(self):
+        ret = self.repair.pascal.field
+        full_layers = self.layers._full_layers
+        #if len(full_layers) > 1 and full_layers[-2][0].lower() in ['list', 'dict']:
+        if len(full_layers) > 1:
+            ret += 'Item'
+        return ret
 
 
 def _pack_field(field: str, layers: List[str]):
@@ -107,7 +185,8 @@ def _pack_field(field: str, layers: List[str]):
     return field
 
 
-def _unpack_field(field: str, deep: int = -1) -> Tuple[List[str], str, Optional[str]]:
+def _unpack_field(field: str,
+                  deep: int = -1) -> Tuple[List[str], str, Optional[str]]:
     '''
         e.1
         input: Optional[List[Dict[str, int]]], deep = -1

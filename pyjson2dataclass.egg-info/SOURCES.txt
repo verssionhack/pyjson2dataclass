@@ -1,6 +1,8 @@
 README.md
 pyproject.toml
 setup.py
+utils.py.bak
+json/example.json
 json/example1.json
 pyjson2dataclass.egg-info/PKG-INFO
 pyjson2dataclass.egg-info/SOURCES.txt
@@ -9,5 +11,13 @@ pyjson2dataclass.egg-info/entry_points.txt
 pyjson2dataclass.egg-info/top_level.txt
 src/__init__.py
 src/__main__.py
+src/field.py
 src/json2dataclass_test.py
+src/tree.py
 src/utils.py
+src/__pycache__/__init__.cpython-312.pyc
+src/__pycache__/__main__.cpython-312.pyc
+src/__pycache__/field.cpython-312.pyc
+src/__pycache__/json2dataclass_test.cpython-312.pyc
+src/__pycache__/utils.cpython-312.pyc
+tests/field.py

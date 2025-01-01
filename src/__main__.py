@@ -1,7 +1,7 @@
 #!/bin/python3
 
 
-from .__init__ import parse, pascal2snake, snake2pascal, print_json
+from .__init__ import do_parse
 import argparse
 
 
@@ -41,7 +41,7 @@ parser.add_argument('-f', '--force',
 def main():
     args = parser.parse_args()
 
-    # do_parse(args.save_dir, args.input, args.pascal, args.overwrite)
+    do_parse(args.save_dir, args.input, args.pascal, args.overwrite)
 
 
 if __name__ == '__main__':

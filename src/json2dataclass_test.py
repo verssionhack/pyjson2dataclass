@@ -1,7 +1,7 @@
 #!/bin/python3
 
 
-from pyjson2dataclass import snake2pascal, pascal2snake, do_parse, do_test
+from pyjson2dataclass import do_test
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -19,7 +19,6 @@ parser.add_argument('-j', '--json-dir',
                     type=str,
                     help='specify json directory to be test',
                     )
-
 
 
 def main():
