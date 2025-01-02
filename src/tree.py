@@ -239,7 +239,7 @@ class Tree:
         fields = []
         childrens = []
         for k in self.struct:
-            if k.isdigit() or len(set(k) & set(ESCAPE_CHAR[''])) > 0:
+            if len(k) == 0 or k[0].isdigit() or len(set(k) & set(ESCAPE_CHAR[''])) > 0:
                 needed_concat = True
                 if self.is_field(k):
                     fields.append(self.field_get(k))
