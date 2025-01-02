@@ -18,8 +18,8 @@ class ListDictItem:
 class Example:
     number: int
     string: str
-    bool: bool
-    as: int
+    bool_: bool
+    as_: int
     list_raw: List[int]
     list_list_number: List[List[int]]
     list_dict: List[ListDictItem]
@@ -30,8 +30,8 @@ class Example:
             return None
         self.number = int(data.get("number_"))
         self.string = str(data.get("string_"))
-        self.bool = bool(data.get("bool_"))
-        self.as = int(data.get("as"))
+        self.bool_ = bool(data.get("bool_"))
+        self.as_ = int(data.get("as"))
         self.list_raw = [(int(i0)) for i0 in data.get("list_raw_")]
         self.list_list_number = [([(int(i1)) for i1 in i0]) for i0 in data.get("list_list_number_")]
         self.list_dict = [(ListDictItem(i0)) for i0 in data.get("list_dict_")]
