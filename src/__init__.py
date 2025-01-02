@@ -23,7 +23,13 @@ def json2dataclass(main_name: str, data: dict | list) -> str:
                 )
         tree.children_upstair()
         no_data_field = True
-    body, predefs = tree2dataclass(_main_name.repair.pascal.field, tree, no_data_field)
+    body, _predefs = tree2dataclass(_main_name.repair.pascal.field, tree, no_data_field)
+
+    predefs = []
+
+    for predef in _predefs:
+        if predef.strip() not in predefs:
+            predefs.append(predef.strip())
 
     context = DATACLASS_FILE_HEADER
     for predef in predefs:
