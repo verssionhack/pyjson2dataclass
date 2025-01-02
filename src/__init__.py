@@ -6,6 +6,8 @@ from importlib import import_module
 from .field import Field
 from .tree import Tree, json2tree, tree2dataclass
 from .utils import repair_name, DATACLASS_FILE_HEADER
+import sys
+sys.path.append('.')
 
 
 def json2dataclass(main_name: str, data: dict | list) -> str:

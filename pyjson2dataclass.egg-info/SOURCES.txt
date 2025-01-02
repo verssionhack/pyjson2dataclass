@@ -8,6 +8,7 @@ pyjson2dataclass.egg-info/PKG-INFO
 pyjson2dataclass.egg-info/SOURCES.txt
 pyjson2dataclass.egg-info/dependency_links.txt
 pyjson2dataclass.egg-info/entry_points.txt
+pyjson2dataclass.egg-info/requires.txt
 pyjson2dataclass.egg-info/top_level.txt
 src/__init__.py
 src/__main__.py

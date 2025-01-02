@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pyjson2dataclass
-Version: 2.0.2
+Version: 2.0.4
 Summary: Parse json to dataclass
 Author: yinpeach
 Project-URL: Homepage, https://github.com/verssionhack
@@ -9,6 +9,7 @@ Project-URL: Repository, https://github.com/verssionhack/pyjson2dataclass.git
 Keywords: dataclass,json,yinpeach
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
+Requires-Dist: case-convert
 
 # Parse json to python dataclass
 
