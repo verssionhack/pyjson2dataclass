@@ -170,7 +170,10 @@ class Field:
         full_layers = self.layers._full_layers
         #if len(full_layers) > 1 and full_layers[-2][0].lower() in ['list', 'dict']:
         if len(full_layers) > 1:
-            ret += 'Item'
+            if full_layers[0][0].lower() in ['list']:
+                ret += 'I'
+            else:
+                ret += 'V'
         return ret
 
 
