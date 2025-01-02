@@ -95,20 +95,35 @@ class Tree:
                 self.children_get(key).struct_concat_children_list_with(other.children_get(key))
                 self.children_get(key).struct_concat_with(other.children_get(key), force=True)
 
-            elif self.is_children(key) and other.is_field(key): # self is children but other is field
-                if not (other.field_get(key).is_list and self.children_get(key).is_list # both list
+            elif self.is_children(key) and other.is_field(key):
+                if key == 'illusts' and other.field_get(key).is_any:
+                    breakpoint()
+                if other.field_get(key).is_any: # self is children but other is field
+                    self.field_get(key).layers.outer_add_layer('Optional')
+                    self.children_get(key).layers.outer_add_layer('Optional')
+                elif not (other.field_get(key).is_list and self.children_get(key).is_list # both list
                         or other.field_get(key).is_dict and self.children_get(key).is_dict): # both dict
                     raise Exception(f'[{key}] type mismatch\nself={self.children_get(key)}\nother={other.field_get(key)}')
 
             elif other.is_children(key) and self.is_field(key):# self is field but other is children
-                if not (self.field_get(key).is_list and other.children_get(key).is_list # both list
+                if self.field_get(key).is_any:
+                    other.field_get(key).layers.outer_add_layer('Optional')
+                    other.children_get(key).layers.outer_add_layer('Optional')
+                    self.field_set(key, other.field_get(key))
+                elif not (self.field_get(key).is_list and other.children_get(key).is_list # both list
                         or self.field_get(key).is_dict and other.children_get(key).is_dict): # both dict
                     raise Exception(f'[{key}] type mismatch\nself={self.field_get(key)}\nother={other.children_get(key)}')
 
                 self.children_set(key, other.field_get(key), other.children_get(key))
             else:
                 if self.field_get(key).field != other.field_get(key).field:
-                    raise Exception(f'[{key}] type mismatch\nself={self.field_get(key)}\nother={other.field_get(key)}')
+                    if self.field_get(key).is_any:
+                        other.field_get(key).layers.outer_add_layer('Optional')
+                        self.field_set(key, other.field_get(key))
+                    elif other.field_get(key).is_any:
+                        self.field_get(key).layers.outer_add_layer('Optional')
+                    else:
+                        raise Exception(f'[{key}] type mismatch\nself={self.field_get(key)}\nother={other.field_get(key)}')
                 self.field_get(key).layers.concat_with(other.field_get(key).layers)
 
         elif self.key_exists(key): # self have key
@@ -172,10 +187,13 @@ class Tree:
 
     def children_upstair(self):
         pending_pop_keys = []
+        pending_pop_keys_any = []
         for k, children in self.children.items():
             children.children_upstair()
             if len(children.children_list) == 1 and isinstance(children.children_list[0], Field):
                 pending_pop_keys.append(k)
+            if len(children.struct) == 0 and len(children.children_list) == 0:
+                pending_pop_keys_any.append(k)
 
         for children in self.children_list:
             if isinstance(children, Tree):
@@ -187,6 +205,11 @@ class Tree:
             _layers.extend(children.children_list[0].layers)
             self.field_set(k, children.children_list[0])
             self.field_get(k).layers = _layers
+        for k in pending_pop_keys_any:
+            children = self.children.pop(k)
+            self.field_set(k, self.field_get(k).replace_field('Any'))
+            self.field_get(k).layers._inner.clear()
+            self.field_get(k).is_any = True
 
     def children_list_upstair(self):
         pending_pop_keys = []
@@ -261,6 +284,8 @@ class Tree:
 
             if len(self.children_list) == 0 and len(_tree.children_list) > 0:
                 self.children_list = [_tree.children_list[0]]
+            if len(_tree.children_list) > 0 and _tree.children_list[0].is_any:
+                self.children_list[0].layers.outer_add_layer('Optional')
             self.layers.outer_add_layer('Dict')
         self._do_link_layers()
 
@@ -289,11 +314,11 @@ def parse_tree(value):
         for v in value.values():
             if v is None:
                 is_optional = True
-        if is_optional:
-            tree.layers.inner_add_layer('Optional')
         for k, v in value.items():
             if v is None:
-                continue
+                _field = Field('Any')
+                _field.is_any = True
+                tree.field_set(k, _field)
             elif isinstance(v, (dict, list)):
                 if len(v) == 0:
                     tree.field_set(k, Field(v.__class__.__name__))
@@ -301,6 +326,10 @@ def parse_tree(value):
                     tree.children_set(k, Field(k), parse_tree(v))
             else:
                 tree.field_set(k, Field(v))
+            # if is_optional:
+            #     tree.field_get(k).layers.inner_add_layer('Optional')
+            #     if k in tree.children:
+            #         tree.children_get(k).layers.inner_add_layer('Optional')
     elif isinstance(value, list):
         tree.layers.outer_add_layer('List')
         is_optional = False

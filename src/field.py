@@ -113,13 +113,15 @@ class Layers:
 class Field:
     field: str
     layers: Layers
+    is_any: bool
 
-    def __init__(self, field: str, layers: List[str] | Layers = []):
+    def __init__(self, field: str, layers: List[str] | Layers = [], is_any: bool = False):
         _layers, self.field, _ = _unpack_field(field=field)
         if isinstance(layers, list):
             self.layers = Layers(layers + _layers)
         else:
             self.layers = Layers(layers._inner + _layers)
+        self.is_any = is_any
 
     def replace_field(self, new_field: str):
         return Field(new_field, self.layers)
@@ -162,13 +164,14 @@ class Field:
 
     @property
     def parse(self):
+        if self.is_any:
+            return '{data}'
         return self.layers.parse.format(field=self.field)
 
     @property
     def dataclass_name(self):
         ret = self.repair.pascal.field
         full_layers = self.layers._full_layers
-        #if len(full_layers) > 1 and full_layers[-2][0].lower() in ['list', 'dict']:
         if len(full_layers) > 1:
             if full_layers[0][0].lower() in ['list']:
                 ret += 'I'

@@ -1,4 +1,4 @@
-RAW_TYPES = ['int', 'float', 'bool', 'str', 'list', 'dict']
+RAW_TYPES = ['int', 'float', 'bool', 'str', 'list', 'dict', 'Any']
 LAYERS_TYPES = ['Optional', 'Dict', 'List']
 RESERVED_NAMES = ['async', 'def', 'if', 'raise', 'del', 'import', 'return', 'elif', 'in', 'try', 'and', 'else', 'is', 'while', 'as', 'except', 'lambda', 'with', 'assert', 'finally', 'nonlocal', 'yield', 'break', 'for', 'not', 'class', 'from', 'or', 'continue', 'global', 'pass'] + RAW_TYPES
 ESCAPE_CHAR = {
