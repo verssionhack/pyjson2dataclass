@@ -24,6 +24,9 @@ class Layers:
     def __add__(self, o: Self):
         return Layers(self._inner + o._inner)
 
+    def extend(self, other: Self):
+        self._inner.extend(other._inner)
+
     @property
     def _full_layers(self):
         ret = []
@@ -52,9 +55,13 @@ class Layers:
         return self.outer_is('Optional')
 
     def outer_add_layer(self, layer: str):
+        if self.outer_optional and layer == 'Optional':
+            return
         self._inner.insert(0, layer)
 
     def inner_add_layer(self, layer: str):
+        if self.inner_optional and layer == 'Optional':
+            return
         self._inner.append(layer)
 
     @property

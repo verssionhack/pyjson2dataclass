@@ -112,15 +112,13 @@ class Tree:
                 self.field_get(key).layers.concat_with(other.field_get(key).layers)
 
         elif self.key_exists(key): # self have key
-            if not self.field_get(key).layers.outer_optional:
-                self.field_get(key).layers.outer_add_layer('Optional')
+            self.field_get(key).layers.outer_add_layer('Optional')
 
         elif other.key_exists(key): # other have key
             self.field_set(key, other.field_get(key))
             if other.is_children(key):
                 self.children_set(key, other.field_get(key), other.children_get(key))
-            if not other.field_get(key).layers.outer_optional:
-                self.field_get(key).layers.outer_add_layer('Optional')
+            self.field_get(key).layers.outer_add_layer('Optional')
 
     def struct_concat_children_list_with(self, other: Self):
         self.layers.concat_with(other.layers)
@@ -186,7 +184,7 @@ class Tree:
         for k in pending_pop_keys:
             _layers = self.field_get(k).layers
             children = self.children.pop(k)
-            _layers._inner.extend(children.children_list[0].layers._inner)
+            _layers.extend(children.children_list[0].layers)
             self.field_set(k, children.children_list[0])
             self.field_get(k).layers = _layers
 
@@ -203,17 +201,17 @@ class Tree:
 
         for k in pending_pop_keys:
             children = self.children.pop(k)
-            self.struct[k].layers._inner.extend(children.children_list[0].layers._inner)
+            self.struct[k].layers.extend(children.children_list[0].layers)
             self.struct[k].field = children.children_list[0].field
 
         if len(self.children_list) == 1:
             if isinstance(self.children_list[0], Tree):
                 if len(self.children_list[0].children_list) > 0 and isinstance(self.children_list[0].children_list[0], Field):
-                    self.layers._inner.extend(self.children_list[0].layers._inner)
-                    self.layers._inner.extend(self.children_list[0].children_list[0].layers._inner)
+                    self.layers.extend(self.children_list[0].layers)
+                    self.layers.extend(self.children_list[0].children_list[0].layers)
                     self.children_list = [self.children_list[0].children_list[0]]
                 else:
-                    self.layers._inner.extend(self.children_list[0].layers._inner)
+                    self.layers.extend(self.children_list[0].layers)
                     self.struct = self.children_list[0].struct
                     self.children = self.children_list[0].children
                     self.children_list = self.children_list[0].children_list
@@ -287,15 +285,20 @@ def struct_tree(value):
 def parse_tree(value):
     tree = Tree()
     if isinstance(value, dict):
+        is_optional = False
+        for v in value.values():
+            if v is None:
+                is_optional = True
+        if is_optional:
+            tree.layers.inner_add_layer('Optional')
         for k, v in value.items():
-            if isinstance(v, (dict, list)):
+            if v is None:
+                continue
+            elif isinstance(v, (dict, list)):
                 if len(v) == 0:
                     tree.field_set(k, Field(v.__class__.__name__))
                 else:
                     tree.children_set(k, Field(k), parse_tree(v))
-            elif v is None:
-                continue
-                #tree.field_set(k, Field('Any'))
             else:
                 tree.field_set(k, Field(v))
     elif isinstance(value, list):
@@ -349,7 +352,6 @@ def tree2dataclass(name: str, tree: Tree, no_data_field: bool = False) -> Tuple[
         k = Field(k)
         if not tree.is_field(k.field):
             v = v.replace_field(v.dataclass_name)
-        _full_layers = v.layers._full_layers
         data_field = f'data.get("{k.field}")'
         if no_data_field:
             data_field = 'data'
