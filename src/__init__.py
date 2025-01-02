@@ -21,6 +21,7 @@ def json2dataclass(main_name: str, data: dict | list) -> str:
                 struct={_main_name.repair.field: _main_name},
                 children={_main_name.repair.field: tree}
                 )
+        tree.children_upstair()
         no_data_field = True
     body, predefs = tree2dataclass(_main_name.repair.pascal.field, tree, no_data_field)
 
