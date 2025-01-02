@@ -1,0 +1,45 @@
+{
+    "number_": 1,
+    "string_": "string",
+    "bool_": true,
+    "as": 1,
+    "list_raw_": [
+        1,
+        2
+    ],
+    "list_list_number_": [
+        [
+            1,
+            2,
+            3
+        ],
+        [
+            4,
+            5,
+            6
+        ]
+    ],
+    "list_dict_": [
+        {
+            "name1": "p1",
+            "age1_opt": 16
+        },
+        {
+            "name1": "p1"
+        }
+    ],
+    "list_opt_list_opt_number": [
+        [
+            1,
+            2,
+            3,
+            null
+        ],
+        [
+            4,
+            5,
+            6
+        ],
+        null
+    ]
+}

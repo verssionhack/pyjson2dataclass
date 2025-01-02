@@ -1,7 +1,7 @@
 #!/bin/python3
 
 
-from .__init__ import key2pascal, key2snake, parse, pascal2snake, snake2pascal, print_json, do_parse
+from .__init__ import do_parse
 import argparse
 
 

@@ -3,34 +3,42 @@ from dataclasses import dataclass
 
 
 @dataclass
+class PascalName1:
+    pascal_name2: List[int]
+
+    def __init__(self, data):
+        if data is None:
+            return None
+        self.pascal_name2 = [(int(i0)) for i0 in data.get("pascalName2")]
+
+
+@dataclass
 class PascalName4Item:
     pascal_name5: dict
 
-    def __init__(self, data: dict | None):
-        if not data:
+    def __init__(self, data):
+        if data is None:
             return None
-        self.pascal_name5 = dict(data["pascalName5"])
+        self.pascal_name5 = dict(data.get("pascalName5"))
 
 
 @dataclass
 class PascalName3Item:
     pascal_name4: List[PascalName4Item]
 
-    def __init__(self, data: dict | None):
-        if not data:
+    def __init__(self, data):
+        if data is None:
             return None
-        self.pascal_name4 = [PascalName4Item(i0) for i0 in data["pascalName4"]]
+        self.pascal_name4 = [(PascalName4Item(i0)) for i0 in data.get("pascalName4")]
 
 
 @dataclass
 class Example1:
-    pascal_name1: Dict[str, List[int]]
+    pascal_name1: PascalName1
     pascal_name3: List[PascalName3Item]
 
-    def __init__(self, data: dict | None):
-        if not data:
+    def __init__(self, data):
+        if data is None:
             return None
-        self.pascal_name1 = dict([(k0, [int(i1) for i1 in v0]) for k0, v0 in data["pascalName1"].items()])
-        self.pascal_name3 = [PascalName3Item(i0) for i0 in data["pascalName3"]]
-
-
+        self.pascal_name1 = PascalName1(data.get("pascalName1"))
+        self.pascal_name3 = [(PascalName3Item(i0)) for i0 in data.get("pascalName3")]

@@ -1,8 +1,41 @@
-from typing import dataclass_transform
-from .utils import pascal2snake, snake2pascal, key2snake, key2pascal, parse, json, print_json, repair_name
+import json
 import os.path as op
 import os
+from case_convert import pascal_case, snake_case
 from importlib import import_module
+from .field import Field
+from .tree import Tree, json2tree, tree2dataclass
+from .utils import repair_name, DATACLASS_FILE_HEADER
+import sys
+sys.path.append('.')
+
+
+def json2dataclass(main_name: str, data: dict | list) -> str:
+    tree = json2tree(data)
+    tree.struct_concat()
+    tree.upstair()
+    _main_name = Field(main_name, tree.layers)
+    no_data_field = False
+    if not tree.layers.empty:
+        tree = Tree(
+                struct={_main_name.repair.field: _main_name},
+                children={_main_name.repair.field: tree}
+                )
+        tree.children_upstair()
+        no_data_field = True
+    body, _predefs = tree2dataclass(_main_name.repair.pascal.field, tree, no_data_field)
+
+    predefs = []
+
+    for predef in _predefs:
+        if predef.strip() not in predefs:
+            predefs.append(predef.strip())
+
+    context = DATACLASS_FILE_HEADER
+    for predef in predefs:
+        context += predef + '\n\n\n'
+
+    return context + body
 
 
 def do_parse(save_dir: str, inputs: list[str], pascal: bool = False, overwrite: bool = False):
@@ -15,13 +48,13 @@ def do_parse(save_dir: str, inputs: list[str], pascal: bool = False, overwrite: 
         if '.' in file_name:
             file_name = file_name[:file_name.rfind('.')]
 
-        pascal_name = snake2pascal(file_name)
-        file_name = snake2pascal(file_name) if pascal else pascal2snake(file_name)
+        pascal_name = pascal_case(file_name)
+        file_name = pascal_case(file_name) if pascal else snake_case(file_name)
         file_name = repair_name(file_name)
         if not op.exists(save_dir):
             os.makedirs(save_dir)
         if not op.exists(op.join(save_dir, f'{file_name}.py')) or overwrite:
-            open(op.join(save_dir, f'{file_name}.py'), 'w').write(parse(pascal_name[0].upper() + pascal_name[1:], data))
+            open(op.join(save_dir, f'{file_name}.py'), 'w').write(json2dataclass(file_name, data))
 
 
 def do_test(dataclass_dir: str, json_dir: str):
@@ -42,8 +75,8 @@ def do_test(dataclass_dir: str, json_dir: str):
         test_dataclass_name = op.basename(jsonfile)
         if '.' in test_dataclass_name:
             test_dataclass_name = repair_name(test_dataclass_name[:test_dataclass_name.rfind('.')])
-        test_dataclass_name_s = pascal2snake(test_dataclass_name)
-        test_dataclass_name_p = snake2pascal(test_dataclass_name)
+        test_dataclass_name_s = snake_case(test_dataclass_name)
+        test_dataclass_name_p = pascal_case(test_dataclass_name)
         test_dataclass_name_p = test_dataclass_name_p[0].upper() + test_dataclass_name_p[1:]
 
         test_dataclass_filepath_s = op.join(dataclass_dir, test_dataclass_name_s) + '.py'
@@ -71,4 +104,3 @@ def do_test(dataclass_dir: str, json_dir: str):
         test_json_dataclass = eval(f'test_dataclass_module.{test_dataclass_name_p}({test_json})')
         print(test_json_dataclass)
         print()
-

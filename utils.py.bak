@@ -1,21 +1,26 @@
-<<<<<<< HEAD
 import json
 import re
-from typing import DefaultDict, List, Optional, Union
-from typing_extensions import Tuple
+from typing import List, Optional, Tuple, Dict, Self
+from dataclasses import dataclass
 
 
-=======
->>>>>>> dev
 RAW_TYPES = ['int', 'float', 'bool', 'str', 'list', 'dict']
-LAYERS_TYPES = ['Optional', 'Dict', 'List']
-RESERVED_NAMES = ['async', 'def', 'if', 'raise', 'del', 'import', 'return', 'elif', 'in', 'try', 'and', 'else', 'is', 'while', 'as', 'except', 'lambda', 'with', 'assert', 'finally', 'nonlocal', 'yield', 'break', 'for', 'not', 'class', 'from', 'or', 'continue', 'global', 'pass'] + RAW_TYPES
+RESERVED_NAMES = ['async', 'def', 'if', 'raise', 'del', 'import', 'return', 'elif', 'in', 'try', 'and', 'else', 'is', 'while', 'as', 'except', 'lambda', 'with', 'assert', 'finally', 'nonlocal', 'yield', 'break', 'for', 'not', 'class', 'form', 'or', 'continue', 'global', 'pass']
 ESCAPE_CHAR = {
         '_': '-/|:;.\\',
         '': '!@#$%^&*()[]\'"<>,~`{}?+=',
         }
 
-DATACLASS_FILE_HEADER = 'from typing import Dict, List, Any, Optional\nfrom dataclasses import dataclass\n\n\n'
+
+@dataclass
+class ParseTree:
+    struct: Dict[str, str]
+    raw_name: Dict[str, str]
+    children: Dict[str, Self]
+    layers: List[str]
+
+def print_json(v):
+    print(json.dumps(v, ensure_ascii=False, indent=4))
 
 
 def v_dup(v):
@@ -29,7 +34,6 @@ def repair_name(name):
         for vv in v:
             while vv in name:
                 name = name.replace(vv, k)
-<<<<<<< HEAD
     return name.replace('-', '_')
 
 
@@ -103,12 +107,10 @@ def _parsed_struct2str(value: dict | str):
     return json.dumps(value, ensure_ascii=False)
 
 
-def _compare_struct_and_concat(a: dict, b: dict, checkd_name: list = [], force_concat: bool = False):
+def _compare_struct_and_concat(a: dict, b: dict, checkd_name: list = []):
     a = v_dup(a)
     b = v_dup(b)
     if _parsed_struct2str(a) == _parsed_struct2str(b):
-        return a
-    if len(set(a['struct']) & set(b['struct'])) == 0:
         return a
     keys = set(a['struct']) | set(b['struct'])
     for key in keys:
@@ -118,9 +120,10 @@ def _compare_struct_and_concat(a: dict, b: dict, checkd_name: list = [], force_c
             _l, childrenk, _ = unpack_raw_field(a['struct'][key])
             if _l and _l[0] == 'Optional':
                 continue
-            a['struct'][key] = _pack_field(a['struct'][key], layers=['Optional'])
             if childrenk in a['children']:
                 a['children'][childrenk]['layers'].append('Optional')
+            else:
+                a['struct'][key] = _pack_field(a['struct'][key], layers=['Optional'])
             checkd_name.append(key)
         elif key not in a['struct'] and key in b['struct']:
             _l, childrenk, _ = unpack_raw_field(b['struct'][key])
@@ -129,38 +132,15 @@ def _compare_struct_and_concat(a: dict, b: dict, checkd_name: list = [], force_c
             if _l and _l[0] == 'Optional':
                 a['struct'][key] = b['struct'][key]
             else:
-                a['struct'][key] = _pack_field(b['struct'][key], layers=['Optional'])
                 if childrenk in b['children']:
                     a['children'][childrenk] = v_dup(b['children'][childrenk])
                     a['children'][childrenk]['layers'].append('Optional')
+                else:
+                    a['struct'][key] = _pack_field(b['struct'][key], layers=['Optional'])
             a['raw_name'][key] = b['raw_name'][key]
             checkd_name.append(key)
         elif a['struct'][key] != b['struct'][key]:
-            _, a_field, _ = unpack_raw_field(a['struct'][key])
-            _, b_field, _ = unpack_raw_field(b['struct'][key])
-            if len(set(['Dict', 'dict', 'List', 'list']) & set([a_field, b_field])) == 0:
-                raise Exception(f'a[struct][{key}] != b[struct][{key}]\na[struct][{key}]={_parsed_struct2str(a["struct"][key])}\nb[struct][{key}]={_parsed_struct2str(b["struct"][key])}')
-            elif len(set(['Dict', 'dict', 'List', 'list']) & set([a_field])) == 0:
-                _l, childrenk, _ = unpack_raw_field(b['struct'][key])
-                if childrenk in b['children']:
-                    a['children'][childrenk] = v_dup(b['children'][childrenk])
-                if _l and _l[0] == 'Optional':
-                    a['struct'][key] = b['struct'][key]
-                else:
-                    a['struct'][key] = _pack_field(b['struct'][key], layers=['Optional'])
-                    if childrenk in b['children']:
-                        a['children'][childrenk] = v_dup(b['children'][childrenk])
-                        a['children'][childrenk]['layers'].append('Optional')
-                a['raw_name'][key] = b['raw_name'][key]
-                checkd_name.append(key)
-            else:
-                _l, childrenk, _ = unpack_raw_field(a['struct'][key])
-                if _l and _l[0] == 'Optional':
-                    continue
-                a['struct'][key] = _pack_field(a['struct'][key], layers=['Optional'])
-                if childrenk in a['children']:
-                    a['children'][childrenk]['layers'].append('Optional')
-                checkd_name.append(key)
+            raise Exception(f'a[struct][{key}] != b[struct][{key}]\na[struct][{key}]={_parsed_struct2str(a["struct"][key])}\nb[struct][{key}]={_parsed_struct2str(b["struct"][key])}')
         else:
             _, childrenk, _ = unpack_raw_field(a['struct'][key])
             if childrenk not in RAW_TYPES:
@@ -208,16 +188,24 @@ def _do_concat_same_struct(values: list[str | dict], layers: list[str] = []):
                     continue
                 if isinstance(sv, list):
                     sv = _do_concat_same_struct(sv, layers=layers)
-                base_struct = _compare_struct_and_concat(base_struct, sv, checkd_name, True)
+                base_struct = _compare_struct_and_concat(base_struct, sv, checkd_name)
     return base_struct
 
 
 def _pack_field(k: str, layers: List[str], **_):
-    if layers and layers[0] == 'List' and k not in RAW_TYPES:
+    _l, k, _ = unpack_raw_field(k)
+    layers.extend(_l)
+    if layers and layers[0] in ['List', 'Dict'] and k not in RAW_TYPES:
         k += 'Item'
     for layer in reversed(layers):
-        k = f'{layer}[{k}]'
+        if layer == 'Dict':
+            k = f'{layer}[str, {k}]'
+        else:
+            k = f'{layer}[{k}]'
     return k
+
+
+
 
 def _parse_tree(value):
 
@@ -229,20 +217,23 @@ def _parse_tree(value):
                 ret[i]['layers'].append('List')
         return ret
     elif isinstance(value, dict):
-        ret = {
-                'struct': {},
-                'raw_name': {},
-                'children': {},
-                'layers': [],
-                }
+        ret = new_parse_tree_struct()
 
         for k in value:
+            if k[0].isdigit():
+                parsed_dict = _parse_tree(value[k])
+                ret = _do_concat_same_struct([parsed_dict], ['Dict'])
+                break
             ret['raw_name'][pascal2snake(k)] = k
             childrenk = snake2pascal(repair_name(k))
             if childrenk:
                 childrenk = childrenk[0].upper() + childrenk[1:]
             if isinstance(value[k], dict):
                 parsed_dict = _parse_tree(value[k])
+
+                if isinstance(parsed_dict, str):
+                    ret['struct'][pascal2snake(k)] = parsed_dict
+                    continue
 
                 if len(parsed_dict['struct']) == 0:
                     ret['struct'][pascal2snake(k)] = 'dict'
@@ -272,6 +263,7 @@ def _parse_tree(value):
                     ret['struct'][pascal2snake(k)] = f'{childrenk}'
                     _, childrenk, _ = unpack_raw_field(childrenk)
                     ret['children'][childrenk] = concated_struct
+
             else:
                 ret['struct'][pascal2snake(k)] = _parse_tree(value[k])
 
@@ -287,7 +279,12 @@ def parse(name: str, data: dict | list):
     else:
         parsed_dict = _do_concat_same_struct(_parse_tree(data))
         if isinstance(parsed_dict, str):
-            return _pack_field(parsed_dict, ['List'])
+            parsed_dict = {
+                    'struct': {
+                        pascal2snake(name): parsed_dict,
+                        }
+                    'children': {},
+                    }
     predefs, body_text = _parse(repair_name(name), parsed_dict)
 
     predefs.reverse()
@@ -323,7 +320,7 @@ def replace_raw_field(field: str, new_raw_field: str, deep: int = -1):
     return new_raw_field
 
 
-def unpack_raw_field(field: str, deep: int = -1) -> Tuple[List[str], str, Optional[str]]:
+def unpack_raw_field(field: str, deep: int = -1) -> (List[str], str, Optional[str]):
     prefixs = [
             'Optional[',
             'List[',
@@ -400,13 +397,10 @@ f'''
         rk = repair_name(k)
         _l, _v, _n = unpack_raw_field(v, 1)
         if len(_l) > 0 and _l[0] == 'Optional':
-            body_text += f'        self.{rk} = {unpack_field_parse(v, "data.get(\"" + raw_name + "\")")}\n'
+            body_text += '        self.{} = {}\n'.format(rk, unpack_field_parse(v, f'data.get("{raw_name}")'))
         else:
-            body_text += f'        self.{rk} = {unpack_field_parse(v, "data[\"" + raw_name + "\"]")}\n'
+            body_text += '        self.{} = {}\n'.format(rk, unpack_field_parse(v, f'data["{raw_name}"]'))
 
     body_text += '\n\n'
 
     return (predefs, body_text)
-=======
-    return name
->>>>>>> dev
