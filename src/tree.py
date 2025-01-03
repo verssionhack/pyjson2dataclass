@@ -374,8 +374,6 @@ def tree2dataclass(name: str, tree: Tree, no_data_field: bool = False) -> Tuple[
 
     body += '\n'
     body += '    def __init__(self, data):\n'
-    body += '        if data is None:\n'
-    body += '            return None\n'
 
     for k, v in tree.struct.items():
         k = Field(k)
