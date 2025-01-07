@@ -71,6 +71,10 @@ def do_test(dataclass_dir: str, json_dir: str):
         mpath.insert(0, r)
         return '.'.join(mpath)
 
+    passed = []
+    failed = []
+    ignored = []
+
     for jsonfile in [op.join(json_dir, i) for i in os.listdir(json_dir)]:
         test_dataclass_name = op.basename(jsonfile)
         if '.' in test_dataclass_name:
@@ -90,6 +94,7 @@ def do_test(dataclass_dir: str, json_dir: str):
             test_dataclass_name = test_dataclass_name_p
         else:
             print(f'dataclass file for "{jsonfile}" not found')
+            ignored.append(jsonfile)
             continue
 
         test_json = json.load(open(jsonfile))
@@ -101,6 +106,28 @@ def do_test(dataclass_dir: str, json_dir: str):
             print(f'import {path2modulepath(dataclass_dir)}.{test_dataclass_name}')
             test_dataclass_module = import_module(f'{path2modulepath(dataclass_dir)}.{test_dataclass_name}')
 
-        test_json_dataclass = eval(f'test_dataclass_module.{test_dataclass_name_p}({test_json})')
-        print(test_json_dataclass)
-        print()
+        try:
+            test_json_dataclass = eval(f'test_dataclass_module.{test_dataclass_name_p}({test_json})')
+            print(test_json_dataclass)
+            print()
+            passed.append(jsonfile)
+        except Exception as e:
+            print(f'{e}')
+            failed.append(jsonfile)
+
+    print(f'Amounts: {len(passed) + len(failed) + len(ignored)}')
+    print(f'Passed: {len(passed)}')
+    print(f'Failed: {len(failed)}')
+    print(f'Ignored: {len(ignored)}')
+    print()
+    print('Passed List')
+    for i in passed:
+        print(i)
+    print()
+    print('Failed List')
+    for i in failed:
+        print(i)
+    print()
+    print('Ignored List')
+    for i in ignored:
+        print(i)
