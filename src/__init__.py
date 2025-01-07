@@ -119,15 +119,18 @@ def do_test(dataclass_dir: str, json_dir: str):
     print(f'Passed: {len(passed)}')
     print(f'Failed: {len(failed)}')
     print(f'Ignored: {len(ignored)}')
-    print()
-    print('Passed List')
-    for i in passed:
-        print(i)
-    print()
-    print('Failed List')
-    for i in failed:
-        print(i)
-    print()
-    print('Ignored List')
-    for i in ignored:
-        print(i)
+    if len(passed) > 0:
+        print()
+        print('Passed:')
+        for i in passed:
+            print(i)
+    if len(failed) > 0:
+        print()
+        print('Failed:')
+        for i in failed:
+            print(i)
+    if len(ignored) > 0:
+        print()
+        print('Ignored:')
+        for i in ignored:
+            print(i)

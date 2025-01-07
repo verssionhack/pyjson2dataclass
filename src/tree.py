@@ -15,7 +15,8 @@ class Tree:
                  struct: Dict[str, Field] | None = None,
                  children: Dict[str, Self] | None = None,
                  children_list: List[Self | Field] | None = None,
-                 layers: Layers | None = None):
+                 layers: Layers | None = None,
+                 ):
         self.struct = struct if struct else {}
         self.children = children if children else {}
         self.children_list = children_list if children_list else []
@@ -96,8 +97,6 @@ class Tree:
                 self.children_get(key).struct_concat_with(other.children_get(key), force=True)
 
             elif self.is_children(key) and other.is_field(key):
-                if key == 'illusts' and other.field_get(key).is_any:
-                    breakpoint()
                 if other.field_get(key).is_any: # self is children but other is field
                     self.field_get(key).layers.outer_add_layer('Optional')
                     self.children_get(key).layers.outer_add_layer('Optional')
@@ -128,6 +127,8 @@ class Tree:
 
         elif self.key_exists(key): # self have key
             self.field_get(key).layers.outer_add_layer('Optional')
+            if self.is_children(key):
+                self.children_get(key).layers.outer_add_layer('Optional')
 
         elif other.key_exists(key): # other have key
             self.field_set(key, other.field_get(key))
@@ -162,7 +163,12 @@ class Tree:
             else:
                 childrens.append(children)
         for field in fields[1:]:
-            if fields[0].field != field.field:
+            if field.is_any:
+                fields[0].layers.outer_add_layer('Optional')
+                if self.is_children(fields[0].field):
+                    self.children_get(fields[0].field).layers.outer_add_layer('Optional')
+                continue
+            elif fields[0].field != field.field:
                 raise Exception(f'field mismatch\nfields[0]={fields[0]}\nfields[{fields.index(field)}]={field}')
             fields[0].layers.concat_with(field.layers)
         for children in childrens:
@@ -281,6 +287,13 @@ class Tree:
 
             _tree = Tree(children_list=fields)
             _tree.struct_concat_children_list()
+
+            if len(_tree.children_list) > 0 and len(self.children_list) > 0 and not _tree.children_list[0].is_any:
+                if not (_tree.children_list[0].is_list and self.children_list[0].is_list # both list
+                        or _tree.children_list[0].is_dict and self.children_list[0].is_dict): # both dict
+                    raise Exception(f'type mismatch\nfield={_tree.children_list[0]}\nchildren={self.children_list[0]}')
+                if _tree.children_list[0].is_dict:
+                    self.children_list[0].struct_concat_with(Tree(layers=_tree.children_list[0].layers), force=True)
 
             if len(self.children_list) == 0 and len(_tree.children_list) > 0:
                 self.children_list = [_tree.children_list[0]]
