@@ -41,6 +41,9 @@ def json2dataclass(main_name: str, data: dict | list) -> str:
 def do_parse(save_dir: str, inputs: list[str], pascal: bool = False, overwrite: bool = False):
     for i in inputs:
 
+        if not op.isfile(i):
+            continue
+
         data = json.load(open(i))
 
         file_name = op.basename(i)
@@ -75,7 +78,7 @@ def do_test(dataclass_dir: str, json_dir: str):
     failed = []
     ignored = []
 
-    for jsonfile in [op.join(json_dir, i) for i in os.listdir(json_dir)]:
+    for jsonfile in [op.join(json_dir, i) for i in os.listdir(json_dir) if op.isfile(op.join(json_dir, i))]:
         test_dataclass_name = op.basename(jsonfile)
         if '.' in test_dataclass_name:
             test_dataclass_name = repair_name(test_dataclass_name[:test_dataclass_name.rfind('.')])
