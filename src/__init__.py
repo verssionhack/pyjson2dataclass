@@ -4,26 +4,35 @@ import os
 from case_convert import pascal_case, snake_case
 from importlib import import_module
 from .field import Field
-from .tree import Tree, json2tree, tree2dataclass
+from .tree import Tree, json2tree, struct_tree, tree2dataclass
 from .utils import repair_name, DATACLASS_FILE_HEADER
 import sys
 sys.path.append('.')
 
 
-def json2dataclass(main_name: str, data: dict | list) -> str:
-    tree = json2tree(data)
-    tree.struct_concat()
-    tree.upstair()
-    _main_name = Field(main_name, tree.layers)
-    no_data_field = False
-    if not tree.layers.empty:
+def json2dataclass(main_name: str, data) -> str:
+    if isinstance(data, (dict, list)):
+        tree = json2tree(data)
+        tree.struct_concat()
+        tree.upstair()
+        _main_name = Field(main_name, tree.layers)
+        no_data_field = False
+        if not tree.layers.empty:
+            tree = Tree(
+                    struct={_main_name.repair.field: _main_name},
+                    children={_main_name.repair.field: tree}
+                    )
+            tree.children_upstair()
+            no_data_field = True
+        body, _predefs = tree2dataclass(_main_name.repair.pascal.field, tree, no_data_field)
+    else:
+        _main_name = Field(main_name)
+        data_struct = struct_tree(data)
+        data_field = Field('Any' if data_struct is None else data_struct, is_any=data_struct is None)
         tree = Tree(
-                struct={_main_name.repair.field: _main_name},
-                children={_main_name.repair.field: tree}
+                struct={_main_name.repair.field: data_field}
                 )
-        tree.children_upstair()
-        no_data_field = True
-    body, _predefs = tree2dataclass(_main_name.repair.pascal.field, tree, no_data_field)
+        body, _predefs = tree2dataclass(_main_name.repair.pascal.field, tree, True)
 
     predefs = []
 
