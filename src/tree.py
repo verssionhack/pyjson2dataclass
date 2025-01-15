@@ -103,6 +103,11 @@ class Tree:
                 elif not (other.field_get(key).is_list and self.children_get(key).is_list # both list
                         or other.field_get(key).is_dict and self.children_get(key).is_dict): # both dict
                     raise Exception(f'[{key}] type mismatch\nself={self.children_get(key)}\nother={other.field_get(key)}')
+                if other.field_get(key).is_dict:
+                    for v in self.children_get(key).struct.values():
+                        v.layers.inner_add_layer('Optional')
+                    for v in self.children_get(key).children.values():
+                        v.layers.inner_add_layer('Optional')
 
             elif other.is_children(key) and self.is_field(key):# self is field but other is children
                 if self.field_get(key).is_any:
@@ -112,6 +117,11 @@ class Tree:
                 elif not (self.field_get(key).is_list and other.children_get(key).is_list # both list
                         or self.field_get(key).is_dict and other.children_get(key).is_dict): # both dict
                     raise Exception(f'[{key}] type mismatch\nself={self.field_get(key)}\nother={other.children_get(key)}')
+                if self.field_get(key).is_dict:
+                    for v in other.children_get(key).struct.values():
+                        v.layers.inner_add_layer('Optional')
+                    for v in other.children_get(key).children.values():
+                        v.layers.inner_add_layer('Optional')
 
                 self.children_set(key, other.field_get(key), other.children_get(key))
             else:
@@ -182,6 +192,11 @@ class Tree:
                     or fields[0].is_dict and childrens[0].is_dict): # both dict
                 raise Exception(f'type mismatch\nfield={fields[0]}\nchildren={childrens[0]}')
             self.children_list = [childrens[0]]
+            if fields[0].is_dict:
+                for v in self.children_list[0].struct.values():
+                    v.layers.inner_add_layer('Optional')
+                for v in self.children_list[0].children.values():
+                    v.layers.inner_add_layer('Optional')
         elif len(childrens) > 0:
             self.children_list = [childrens[0]]
         elif len(fields) > 0:
