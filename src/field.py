@@ -115,7 +115,11 @@ class Field:
     layers: Layers
     is_any: bool
 
-    def __init__(self, field: str, layers: List[str] | Layers = [], is_any: bool = False):
+    def __init__(self, field: str,
+                 layers: List[str] | Layers | None = None,
+                 is_any: bool = False
+                 ):
+        layers = layers if layers is not None else []
         _layers, self.field, _ = _unpack_field(field=field)
         if isinstance(layers, list):
             self.layers = Layers(layers + _layers)

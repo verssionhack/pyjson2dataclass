@@ -41,7 +41,7 @@ parser.add_argument('-f', '--force',
 def main():
     args = parser.parse_args()
 
-    do_parse(args.save_dir, args.input, args.pascal, args.overwrite)
+    do_parse(save_dir=args.save_dir, inputs=args.input, pascal=args.pascal, overwrite=args.overwrite)
 
 
 if __name__ == '__main__':

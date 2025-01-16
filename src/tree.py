@@ -156,9 +156,32 @@ class Tree:
             elif len(self.children_list) == 0 and len(other.children_list) > 0:
                 self.children_list = [other.children_list[0]]
             elif len(self.children_list) > 0 and len(other.children_list) > 0:
-                if isinstance(self.children_list[0], Tree) and isinstance(other.children_list[0], Tree):
+                if isinstance(self.children_list[0], Tree) and isinstance(other.children_list[0], Field):
+                    if other.children_list[0].is_any:
+                        self.children_list[0].layers.outer_add_layer('Optional')
+                    elif not (self.children_list[0].is_list and other.children_list[0].is_list # both list
+                            or self.children_list[0].is_dict and other.children_list[0].is_dict): # both dict
+                        raise Exception(f'children type mismatch\nself={self.children_list[0]}\nother={other.children_list[0]}')
+                    if other.children_list[0].is_dict:
+                        for v in self.children_list[0].struct.values():
+                            v.layers.inner_add_layer('Optional')
+                        for v in self.children_list[0].children.values():
+                            v.layers.inner_add_layer('Optional')
+                elif isinstance(other.children_list[0], Tree) and isinstance(self.children_list[0], Field):
+                    if self.children_list[0].is_any:
+                        other.children_list[0].layers.outer_add_layer('Optional')
+                    elif not (self.children_list[0].is_list and other.children_list[0].is_list # both list
+                            or self.children_list[0].is_dict and other.children_list[0].is_dict): # both dict
+                        raise Exception(f'children type mismatch\nself={self.children_list[0]}\nother={other.children_list[0]}')
+                    if self.children_list[0].is_dict:
+                        for v in other.children_list[0].struct.values():
+                            v.layers.inner_add_layer('Optional')
+                        for v in other.children_list[0].children.values():
+                            v.layers.inner_add_layer('Optional')
+                    self.children_list[0] = other.children_list[0].copy
+                elif isinstance(self.children_list[0], Tree) and isinstance(other.children_list[0], Tree):
                     self.children_list[0].struct_concat_with(other.children_list[0], force=True)
-                if isinstance(self.children_list[0], Field) and isinstance(other.children_list[0], Field):
+                elif isinstance(self.children_list[0], Field) and isinstance(other.children_list[0], Field):
                     if self.children_list[0].field != other.children_list[0].field:
                         raise Exception(f'type mismatch\nself={self.children_list[0]}\nother={other.children_list[0]}')
 
