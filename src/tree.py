@@ -69,7 +69,7 @@ class Tree:
 
     @property
     def is_list(self) -> bool:
-        return len(self.children_list) > 0 or self.layers.outer_is('List')
+        return len(self.children_list) > 0 and not self.layers.outer_is('Dict') or self.layers.outer_is('List')
 
     def field_get(self, key: str) -> Field:
         return self.struct[key]
@@ -182,7 +182,12 @@ class Tree:
                 elif isinstance(self.children_list[0], Tree) and isinstance(other.children_list[0], Tree):
                     self.children_list[0].struct_concat_with(other.children_list[0], force=True)
                 elif isinstance(self.children_list[0], Field) and isinstance(other.children_list[0], Field):
-                    if self.children_list[0].field != other.children_list[0].field:
+                    if self.children_list[0].is_any:
+                        other.children_list[0].layers.outer_add_layer('Optional')
+                        self.children_list[0] = other.children_list[0]
+                    elif other.children_list[0].is_any:
+                        self.children_list[0].layers.outer_add_layer('Optional')
+                    elif self.children_list[0].field != other.children_list[0].field:
                         raise Exception(f'type mismatch\nself={self.children_list[0]}\nother={other.children_list[0]}')
 
     def struct_concat_children_list(self):
@@ -204,8 +209,12 @@ class Tree:
             elif fields[0].field != field.field:
                 raise Exception(f'field mismatch\nfields[0]={fields[0]}\nfields[{fields.index(field)}]={field}')
             fields[0].layers.concat_with(field.layers)
+        _t = Tree()
         for children in childrens:
             children.struct_concat_children_list()
+            _t.children_list.extend(children.children_list)
+        if _t.children_list:
+            _t.struct_concat_children_list()
         for children in childrens[1:]:
             childrens[0].struct_concat_with(children, force=True)
             childrens[0].layers.concat_with(children.layers)

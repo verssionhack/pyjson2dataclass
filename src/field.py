@@ -31,20 +31,35 @@ class Layers:
     def _full_layers(self):
         ret = []
         i = 0
+        is_optional = False
         while i < self.len:
-            is_optional = False
             if self._inner[i] == 'Optional':
                 is_optional = True
                 i += 1
+                continue
             if i == self.len:
                 break
             ret.append((self._inner[i], is_optional))
+            is_optional = False
             i += 1
         if not self.empty:
             ret.append(self._inner[-1] == 'Optional')
         else:
             ret.append(False)
         return ret
+
+    def repair(self):
+        full_layers = self._full_layers
+        repaired_layers = []
+
+        for _layer in full_layers[:-1]:
+            (layer, is_optional) = _layer
+            if is_optional:
+                repaired_layers.append('Optional')
+            repaired_layers.append(layer)
+        if full_layers[-1]:
+            repaired_layers.append('Optional')
+        self._inner = repaired_layers
 
     @property
     def inner_optional(self) -> bool:
@@ -70,6 +85,7 @@ class Layers:
 
     @property
     def parse(self) -> str:
+        self.repair()
         def V(v: str, N: str, D: int = 0):
             if self.empty or D == len(self._inner):
                 return f'{v}({N})'
@@ -148,6 +164,7 @@ class Field:
 
     @property
     def pack(self):
+        self.layers.repair()
         return _pack_field(field=self.field, layers=self.layers._inner)
 
     @property
